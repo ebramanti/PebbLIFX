@@ -1,0 +1,17 @@
+{
+  "uuid": "ae0c6c56-1ae2-42b2-a7ba-800d998928c4",
+  "shortName": "pebbLIFX",
+  "longName": "pebbLIFX Watch App",
+  "companyName": "pebbLIFX",
+  "versionCode": 1,
+  "versionLabel": "1.0.0",
+  "watchapp": {
+    "watchface": false
+  },
+  "appKeys": {
+    "dummy": 0
+  },
+  "resources": {
+    "media": []
+  }
+}
