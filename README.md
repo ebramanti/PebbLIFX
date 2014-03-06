@@ -3,16 +3,11 @@ pebbLIFX
 
 pebbLIFX is a Pebble application that allows you to control your LIFX bulbs when your phone is in range of your WiFi network. 
 
-pebbLIFX uses two critical libraries to gain this functionality:
-
-* lifxjs for communication to the LIFX bulbs.
-* Anode for the node server sending commands in the companion Android app.
+pebbLIFX uses Johan Lindell's ![JavaLIFX](https://github.com/lindell/JavaLIFX) library in order to communicate with the bulbs via a companion Android app.
 
 Initial Goals
 =============
 * Activation of companion app when Pebble app opens.
-    - Start Node server when app is opened on watch.
-    - Close server when app is closed on watch.
 * Light commands in Pebble app
     - Brightness
     - On/Off
