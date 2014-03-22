@@ -56,6 +56,7 @@ static SimpleMenuItem second_menu_items[NUM_SECOND_MENU_ITEMS];
 
 // This initializes the menu upon window load
 static void window_load(Window *window) {
+<<<<<<< HEAD
     // We'll have to load the icon before we can use it
     //menu_icon_image = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_MENU_ICON_1);
 
@@ -111,9 +112,8 @@ void handle_receive (DictionaryIterator* iterator, void* context) {
 // Deinitialize resources on window unload that were initialized on window load
 void window_unload(Window *window) {
     simple_menu_layer_destroy(simple_menu_layer);
-
-    // Cleanup the menu icon
-    //gbitmap_destroy(menu_icon_image);
+  // Cleanup the menu icon
+  //gbitmap_destroy(menu_icon_image);
 }
 
 int main(void) {

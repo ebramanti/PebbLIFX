@@ -1,9 +1,9 @@
-pebbLIFX
+PebbLIFX
 =========
 
-pebbLIFX is a Pebble application that allows you to control your LIFX bulbs when your phone is in range of your WiFi network. 
+PebbLIFX is a Pebble application that allows you to control your LIFX bulbs when your phone is in range of your WiFi network. 
 
-pebbLIFX uses the [AndroidLIFX](https://github.com/akrs/AndroidLIFX) library in order to communicate with the bulbs via a companion Android app.
+PebbLIFX uses the [AndroidLIFX](https://github.com/akrs/AndroidLIFX) library in order to communicate with the bulbs via a companion Android app.
 
 Initial Goals
 =============
