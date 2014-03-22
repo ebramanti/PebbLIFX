@@ -29,6 +29,12 @@
             android:name="com.jadengore.pebblifx.Preferences"
             android:label="@string/title_activity_preferences" >
         </activity>
+        <service
+		    android:name="PebbLIFXService"
+		    android:icon="@drawable/icon"
+		    android:label="@string/service_name"
+            >
+        </service> 
     </application>
 
 </manifest>
