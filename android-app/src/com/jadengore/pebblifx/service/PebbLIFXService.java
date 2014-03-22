@@ -1,5 +1,6 @@
 package com.jadengore.pebblifx.service;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,8 +44,35 @@ public class PebbLIFXService extends Service {
 		return Service.START_NOT_STICKY;
 	}
 	
+	//	Helper method for converting signed numbers in Java.
+	private short convertSigned (int value) {
+		if (value > Short.MAX_VALUE) {
+			return (short)(value + Integer.MIN_VALUE);
+		} else {
+			return (short)value;
+		}
+	}
+	
 	public void receiveMessage (PebbleDictionary dictionary, int transactionId) {
 	    this.transactionId = transactionId; // make sure transactionId is set before calling (onStart)
+	    int type = dictionary.getInteger(0).intValue();
+	    switch (type) {
+	    case 0:
+	    	discover();
+	    	break;
+	    case 1:
+	    	onOff(dictionary.getInteger(1).intValue(), dictionary.getInteger(2).intValue());
+	    	break;
+	    case 2:
+	    	brightness(dictionary.getInteger(1).intValue(), convertSigned(dictionary.getInteger(2).intValue()));
+	    	break;
+	    case 3:
+	    	color(dictionary.getInteger(1).intValue(), convertSigned(dictionary.getInteger(2).intValue()));
+	    	break;
+	    default:
+	    	Log.e("PebbLIFXService", "Received unexpected value/message from Pebble: " + type);
+	    	break;
+	    }
 	}
 	
 	public void discover() {
@@ -66,6 +94,35 @@ public class PebbLIFXService extends Service {
 	}
 	
 	public void onOff(int target, int state) {
+		if (state == 0) {
+			if (target == 0) {
+				try {
+					net.off();
+				} catch (IOException e) {
+					Log.e("PebbLIFXService", "Unable to turn off all bulbs.", e);
+				}
+			} else {
+				try {
+					bulbList.get(target).off();
+				} catch (IOException e) {
+					Log.e("PebbLIFXService", "Unable to turn off bulb " + target, e);
+				}
+			}	
+		} else {
+			if (target == 0) {
+				try {
+					net.on();
+				} catch (IOException e) {
+					Log.e("PebbLIFXService", "Unable to turn on all bulbs.", e);
+				}
+			} else {
+				try {
+					bulbList.get(target).on();
+				} catch (IOException e) {
+					Log.e("PebbLIFXService", "Unable to turn on bulb " + target, e);
+				}
+			}	
+		}
 		ack();
 	}
 	
