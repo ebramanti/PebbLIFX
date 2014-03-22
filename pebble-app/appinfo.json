@@ -1,8 +1,8 @@
 {
-  "uuid": "ae0c6c56-1ae2-42b2-a7ba-800d998928c4",
-  "shortName": "pebbLIFX",
-  "longName": "pebbLIFX Watch App",
-  "companyName": "pebbLIFX",
+  "uuid": "0079c607-a1af-4308-a743-3c1afbc7387d",
+  "shortName": "PebbLIFX",
+  "longName": "PebbLIFX",
+  "companyName": "Edward Bramanti",
   "versionCode": 1,
   "versionLabel": "1.0.0",
   "watchapp": {
@@ -12,7 +12,6 @@
     "dummy": 0
   },
   "resources": {
-    "media": [
-      ]
+    "media": []
   }
 }
