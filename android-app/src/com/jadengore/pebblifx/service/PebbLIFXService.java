@@ -26,6 +26,7 @@ public class PebbLIFXService extends Service {
 	private int transactionId;
 	
 	
+	
 	public PebbLIFXService() {
 		// Nothing to do here.
 	}
@@ -47,7 +48,8 @@ public class PebbLIFXService extends Service {
 		      receiveMessage(data, transactionId);
 		    }
 		});
-		return Service.START_STICKY;
+		// http://stackoverflow.com/questions/15758980/android-service-need-to-run-alwaysnever-pause-or-stop
+		return START_STICKY;
 	}
 	
 	//	Helper method for converting signed numbers in Java.
@@ -95,6 +97,7 @@ public class PebbLIFXService extends Service {
 			PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, networkFail);
 			Log.i("", "Data sent.");
 		}
+		PebbleKit.closeAppOnPebble(getApplicationContext(), PEBBLE_APP_UUID);
 	}
 	
 	//@SuppressWarnings("static-access")
@@ -103,14 +106,14 @@ public class PebbLIFXService extends Service {
 		d.startSearch();
 		d.sleepThread(2500); // best way to wait for bulbs
 		if (d.getBulbNetwork() == null) {
-			Log.e("Nothing returned. ","No network found.");
+			Log.e("PebbLIFXService","Nothing returned. No network found.");
 			d.stopSearch();
 			sendMessage(0);
 		} else {
 			net = d.getBulbNetwork();
 			bulbList = net.getBulbList();
 			d.stopSearch();
-			Log.i("", "Search has completed.");
+			Log.i("PebbLIFXService", "Search has completed.");
 			int numberOfBulbs = bulbList.size();
 			if (PebbleKit.areAppMessagesSupported(getApplicationContext())) {
 				PebbleDictionary bulbData = new PebbleDictionary();
@@ -130,9 +133,9 @@ public class PebbLIFXService extends Service {
 					bulbData.addUint16(j++, bulbList.get(i).getLuminance());
 					bulbData.addUint16(j++, bulbList.get(i).getHue());
 				}
-				Log.i("Dictionary", bulbData.toJsonString());
+				Log.i("PebbLIFXService", "Dictionary -> " + bulbData.toJsonString());
 				PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, bulbData);
-				Log.i("", "Data sent.");
+				Log.i("PebbLIFXService", "Data sent.");
 			}
 		}
 	}
@@ -146,7 +149,7 @@ public class PebbLIFXService extends Service {
 			bulbState.addUint16(3, (byte) color); // Color
 			Log.i("Dictionary", bulbState.toJsonString());
 			PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, bulbState);
-			Log.i("", "Data sent.");
+			Log.i("PebbLIFXService", "Data sent.");
 		}
 	}
 
@@ -158,7 +161,7 @@ public class PebbLIFXService extends Service {
 			lostConnection.addString(2, "Network Connection \nLost."); // See if this is valid in C.
 			Log.i("Dictionary", lostConnection.toJsonString());
 			PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, lostConnection);
-			Log.i("", "Data sent.");
+			Log.i("PebbLIFXService", "Data sent.");
 		}
 	}
 	
@@ -168,18 +171,32 @@ public class PebbLIFXService extends Service {
 	    switch (type) {
 	    case 0: // Discover bulbs.
 	    	discover();
-	    	Log.i("", "Discovery gg.");
+	    	Log.i("PebbLIFXService", "Discovery complete.");
 	    	break;
-	    case 1: // Turns bulbs on or off.
+	    case 1: //Pebble app on phone close.
+	    	try {
+				if (net != null) {
+					net.close();
+					Log.i("PebbLIFXService", "Network closed.");
+				}
+			} catch (IOException e) {
+				Log.e("PebbLIFXService", "Problem detected on net.close()");
+			}
+	    	break;
+	    case 2: // Turns bulbs on or off.
+	    	Log.i("PebbLIFXService", "On/off command received.");
 	    	onOff(dictionary.getUnsignedInteger(1).intValue(), dictionary.getUnsignedInteger(2).intValue());
 	    	break;
-	    case 2: // Adjusts brightness of bulbs.
+	    case 3: // Adjusts brightness of bulbs.
+	    	Log.i("PebbLIFXService", "Brightness adjustment command received.");
 	    	brightness(dictionary.getUnsignedInteger(1).intValue(), convertSigned(dictionary.getUnsignedInteger(2).intValue()));
 	    	break;
-	    case 3: // Adjusts color of bulbs.
+	    case 4: // Adjusts color of bulbs.
+	    	Log.i("PebbLIFXService", "Color adjustment command received.");
 	    	color(dictionary.getUnsignedInteger(1).intValue(), convertSigned(dictionary.getUnsignedInteger(2).intValue()));
 	    	break;
-	    case 4: // Get bulb status. INDIVIDUAL BULBS ONLY.
+	    case 5: // Get bulb status. INDIVIDUAL BULBS ONLY.
+	    	Log.i("PebbLIFXService", "Bulb status command received.");
 	    	bulbStatus(dictionary.getUnsignedInteger(1).intValue());
 	    	break;
 	    default:
