@@ -12,6 +12,13 @@
     "dummy": 0
   },
   "resources": {
-    "media": []
+    "media": [
+      {
+        "name": "PEBBLIFX_LOGO",
+        "type": "png",
+        "file": "images/pebblifxlogo.png",
+        "menuIcon": true
+      }
+    ]
   }
 }

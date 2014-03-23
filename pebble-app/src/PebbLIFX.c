@@ -13,6 +13,7 @@ static SimpleMenuSection menu_sections[NUM_MENU_SECTIONS];
 int numberOfBulbs; 
 
 static SimpleMenuItem all_bulbs[1];
+static SimpleMenuItem* bulb_list;
 
 //  Pebble app queries phone to start discoverer on phone.
 static void bulb_discovery_init(void) {
@@ -20,42 +21,52 @@ static void bulb_discovery_init(void) {
     if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
         return;
     }
+    //
+    // The problem is here.
+    //
     if (dict_write_uint8(iter, BULB_DISCOVERY_REQUEST_KEY, 0) != DICT_OK) {
         return;
     }
     app_message_outbox_send();
     //  Log will tell if discovery request was sent.
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent!");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent Discovery Initialization");
+}
+
+// You can capture when the user selects a menu icon with a menu item select callback. Doesn't do anything currently.
+static void menu_select_callback(int index, void *ctx) {
+    // Here we just change the subtitle to a literal string
+    //bulb_list[index].subtitle = "You've hit select here!";
+    // Mark the layer to be updated
+    layer_mark_dirty(simple_menu_layer_get_layer(simple_menu_layer));
 }
 
 //  Pebble app receives dictionary containing bulb info, etc.
 static void process_bulb_network_data(DictionaryIterator *iter) {
 
-
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Initiate processing of bulb network");
 
     numberOfBulbs = dict_find(iter, 1)->value->uint8;
     // Little maggot array.
     char bulbNames[numberOfBulbs][32];
 
-    for (int i = 0; i < numberOfBulbs; i++) {
-        strcpy(bulbNames[i], dict_find(iter, i+2)->value->cstring);
-    }
-
-    SimpleMenuItem bulb_list[numberOfBulbs];
+    bulb_list = malloc(sizeof(SimpleMenuItem) * numberOfBulbs);
 
     all_bulbs[0] = (SimpleMenuItem){
         // You should give each menu item a title and callback
-        .title = "All Lights"
-        //.callback = menu_select_callback,
+        .title = "All Lights",
+        .callback = menu_select_callback,
     };
 
     //  Create sections for the bulb names.
     for (int i = 0; i < numberOfBulbs; i++) {
+        strcpy(bulbNames[i], (char*)dict_find(iter, i+2)->value);
         bulb_list[i] = (SimpleMenuItem){
-            .title = bulbNames[i]
-            //.callback = menu_select_callback,
+            .title = (char*)dict_find(iter, i+2)->value,
+            .callback = menu_select_callback,
         };
+        APP_LOG(APP_LOG_LEVEL_INFO, "Added bulb to menu: %s", bulb_list[i].title);
     }
+    APP_LOG(APP_LOG_LEVEL_INFO, "Total bulbs found: %d", numberOfBulbs);
     menu_sections[0] = (SimpleMenuSection){
         .num_items = 1,
         .items = all_bulbs,
@@ -78,19 +89,12 @@ static void process_bulb_network_data(DictionaryIterator *iter) {
 
     // Add it to the window for display
     layer_add_child(window_layer, simple_menu_layer_get_layer(simple_menu_layer));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Added menu layer!");
 }
-
-// You can capture when the user selects a menu icon with a menu item select callback. Doesn't do anything currently.
-/*static void menu_select_callback(int index, void *ctx) {
-    // Here we just change the subtitle to a literal string
-    first_menu_items[index].subtitle = "You've hit select here!";
-    // Mark the layer to be updated
-    layer_mark_dirty(simple_menu_layer_get_layer(simple_menu_layer));
-} */
 
 static void handle_receive(DictionaryIterator *iter, void *context) {
     int message_type = dict_read_first(iter)->value->uint8;
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received!");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received response from phone");
     switch(message_type) {
     case 0:
         APP_LOG(APP_LOG_LEVEL_DEBUG, "No Network Found - Key Code: %d", message_type);
