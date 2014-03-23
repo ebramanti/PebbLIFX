@@ -43,7 +43,7 @@ public class pebblifxservice extends Service {
 		PebbleKit.registerReceivedDataHandler(this, new PebbleKit.PebbleDataReceiver(PEBBLE_APP_UUID) {
 		    @Override
 		    public void receiveData(final Context context, final int transactionId, final PebbleDictionary data) {
-		      Log.i("PebbLIFXService", "Received value=" + data.getUnsignedInteger(0) + " for key: 0");
+		      Log.i("PebbLIFXService", "Received value = " + data.getUnsignedInteger(0) + " for key: 0");
 		      receiveMessage(data, transactionId);
 		    }
 		});
@@ -61,19 +61,20 @@ public class pebblifxservice extends Service {
 	
 	public void receiveMessage (PebbleDictionary dictionary, int transactionId) {
 	    this.transactionId = transactionId; // make sure transactionId is set before calling (onStart)
-	    int type = dictionary.getInteger(0).intValue();
+	    int type = dictionary.getUnsignedInteger(0).intValue();
 	    switch (type) {
 	    case 0:
 	    	discover();
+	    	Log.i("", "Discovery gg.");
 	    	break;
 	    case 1:
-	    	onOff(dictionary.getInteger(1).intValue(), dictionary.getInteger(2).intValue());
+	    	onOff(dictionary.getUnsignedInteger(1).intValue(), dictionary.getUnsignedInteger(2).intValue());
 	    	break;
 	    case 2:
-	    	brightness(dictionary.getInteger(1).intValue(), convertSigned(dictionary.getInteger(2).intValue()));
+	    	brightness(dictionary.getUnsignedInteger(1).intValue(), convertSigned(dictionary.getUnsignedInteger(2).intValue()));
 	    	break;
 	    case 3:
-	    	color(dictionary.getInteger(1).intValue(), convertSigned(dictionary.getInteger(2).intValue()));
+	    	color(dictionary.getUnsignedInteger(1).intValue(), convertSigned(dictionary.getUnsignedInteger(2).intValue()));
 	    	break;
 	    default:
 	    	Log.e("PebbLIFXService", "Received unexpected value/message from Pebble: " + type);
@@ -84,21 +85,24 @@ public class pebblifxservice extends Service {
 	public void discover() {
 		Discoverer d = new Discoverer(getApplicationContext());
 		d.startSearch();
-		while (d.getBulbNetwork() == null) {
+		while (d.getBulbNetwork() == null || d.getBulbNetwork().getNumberOfBulbs() != 2) {
 			continue; //TODO there's a better way
 		}
 		net = d.getBulbNetwork();
 		bulbList = net.getBulbList();
 		d.stopSearch();
+		Log.i("", "Search has completed.");
 		int numberOfBulbs = bulbList.size();
 		if (PebbleKit.areAppMessagesSupported(getApplicationContext())) {
 			PebbleDictionary bulbData = new PebbleDictionary();
 			bulbData.addUint8(0, (byte) 1);
 			bulbData.addUint8(1, (byte) numberOfBulbs); // Will only allow 255 bulbs to be passed.
 			for (int i = 2; i < numberOfBulbs + 2; i++) {
-				bulbData.addString(i, bulbList.get(i - 2).toString());
+				bulbData.addString(i, bulbList.get(i - 2).getName());
 			}
+			Log.i("Dictionary", bulbData.toJsonString());
 			PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, bulbData);
+			Log.i("", "Data sent.");
 		}
 	}
 	
