@@ -58,23 +58,24 @@ public class PebbLIFXService extends Service {
 		}
 	}
 	
+
 	public void sendMessage (int type) {
 		switch (type) {
 		case 0: // No network was found.
-			noNetworkFound();
 			Log.e("Error Sent: ", "No network found.");
+			noNetworkFound();
 			break;
 		case 1:
-			bulbList();
 			Log.i("Responding: ", "Bulb List Requested");
+			discover();
 			break;
 		case 2:
-			bulbState();
 			Log.i("Responding: ", "Change Bulb State Requested");
+			//bulbState(); 	// TODO passing values
 			break;
 		case 3:
-			lostConnection();
 			Log.e("Error Sent: ", "Lost Connection to Bulbs.");
+			lostConnection();
 			break;
 		default:
 			Log.e("PebbLIFXService", "Received unexpected value/message for Pebble: " + type);
@@ -84,42 +85,15 @@ public class PebbLIFXService extends Service {
 	
 	
 	public void noNetworkFound () {
-		//TODO no network found
-	}
-	
-	public void bulbList () {
-		//TODO bulbList (call in discovery)
-	}
-	
-	public void bulbState () {
-		//TODO bulbState
-	}
-
-	public void lostConnection () {
-		//TODO lost connection
-	}
-	
-	public void receiveMessage (PebbleDictionary dictionary, int transactionId) {
-	    this.transactionId = transactionId; // make sure transactionId is set before calling (onStart)
-	    int type = dictionary.getUnsignedInteger(0).intValue();
-	    switch (type) {
-	    case 0: // Discover bulbs.
-	    	discover();
-	    	Log.i("", "Discovery gg.");
-	    	break;
-	    case 1: // Turns bulbs on or off.
-	    	onOff(dictionary.getUnsignedInteger(1).intValue(), dictionary.getUnsignedInteger(2).intValue());
-	    	break;
-	    case 2: // Adjusts brightness of bulbs.
-	    	brightness(dictionary.getUnsignedInteger(1).intValue(), convertSigned(dictionary.getUnsignedInteger(2).intValue()));
-	    	break;
-	    case 3: // Adjusts color of bulbs.
-	    	color(dictionary.getUnsignedInteger(1).intValue(), convertSigned(dictionary.getUnsignedInteger(2).intValue()));
-	    	break;
-	    default:
-	    	Log.e("PebbLIFXService", "Received unexpected value/message from Pebble: " + type);
-	    	break;
-	    }
+		if (PebbleKit.areAppMessagesSupported(getApplicationContext())) {
+			PebbleDictionary networkFail = new PebbleDictionary();
+			networkFail.addUint8(0, (byte) 0);
+			networkFail.addUint8(1, (byte) 0); // Filler value
+			networkFail.addString(2, "LIFX Network not found.");
+			Log.i("Dictionary", networkFail.toJsonString());
+			PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, networkFail);
+			Log.i("", "Data sent.");
+		}
 	}
 	
 	//@SuppressWarnings("static-access")
@@ -149,6 +123,54 @@ public class PebbLIFXService extends Service {
 				Log.i("", "Data sent.");
 			}
 		}
+	}
+	
+	public void bulbState (int target, int state, int brightness, int color) { //brightness and color are uint16
+		if (PebbleKit.areAppMessagesSupported(getApplicationContext())) {
+			PebbleDictionary bulbState = new PebbleDictionary();
+			bulbState.addUint8(0, (byte) target); // Target
+			bulbState.addUint8(1, (byte) state); // State
+			bulbState.addUint16(2, (byte) brightness); // Brightness
+			bulbState.addUint16(3, (byte) color); // Color
+			Log.i("Dictionary", bulbState.toJsonString());
+			PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, bulbState);
+			Log.i("", "Data sent.");
+		}
+	}
+
+	public void lostConnection () {
+		if (PebbleKit.areAppMessagesSupported(getApplicationContext())) {
+			PebbleDictionary lostConnection = new PebbleDictionary();
+			lostConnection.addUint8(0, (byte) 0);
+			lostConnection.addUint8(1, (byte) 0); // Filler value
+			lostConnection.addString(2, "Network Connection \nLost."); // See if this is valid in C.
+			Log.i("Dictionary", lostConnection.toJsonString());
+			PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, lostConnection);
+			Log.i("", "Data sent.");
+		}
+	}
+	
+	public void receiveMessage (PebbleDictionary dictionary, int transactionId) {
+	    this.transactionId = transactionId; // make sure transactionId is set before calling (onStart)
+	    int type = dictionary.getUnsignedInteger(0).intValue();
+	    switch (type) {
+	    case 0: // Discover bulbs.
+	    	discover();
+	    	Log.i("", "Discovery gg.");
+	    	break;
+	    case 1: // Turns bulbs on or off.
+	    	onOff(dictionary.getUnsignedInteger(1).intValue(), dictionary.getUnsignedInteger(2).intValue());
+	    	break;
+	    case 2: // Adjusts brightness of bulbs.
+	    	brightness(dictionary.getUnsignedInteger(1).intValue(), convertSigned(dictionary.getUnsignedInteger(2).intValue()));
+	    	break;
+	    case 3: // Adjusts color of bulbs.
+	    	color(dictionary.getUnsignedInteger(1).intValue(), convertSigned(dictionary.getUnsignedInteger(2).intValue()));
+	    	break;
+	    default:
+	    	Log.e("PebbLIFXService", "Received unexpected value/message from Pebble: " + type);
+	    	break;
+	    }
 	}
 	
 	public void onOff(int target, int state) {
@@ -187,19 +209,35 @@ public class PebbLIFXService extends Service {
 	public void brightness (int target, short level) {
 		// TODO BRIGHTNESS
 		if (target == 0) {
-			
+			try {
+				//net.brightness(level); or setState somehow
+			} catch (IOException e) {
+				Log.e("PebbLIFXService", "Unable to set brightness for all bulbs.", e);
+			}
 		} else {
-			
-		}
+			try {
+				bulbList.get(target).setBrightness(level);
+			} catch (IOException e) {
+				Log.e("PebbLIFXService", "Unable to set brightness for bulb " + target, e);
+			}
+		}	
 		ack();
 	}
 	
 	public void color (int target, short color) {
 		// TODO COLOR
 		if (target == 0) {
-			
+			try {
+				//net.color(color); or setState somehow
+			} catch (IOException e) {
+				Log.e("PebbLIFXService", "Unable to set color for all bulbs.", e);
+			}
 		} else {
-			
+			try {
+				bulbList.get(target).setHue(color);
+			} catch (IOException e) {
+				Log.e("PebbLIFXService", "Unable to set color for bulb " + target, e);
+			}
 		}
 		ack();
 	}
