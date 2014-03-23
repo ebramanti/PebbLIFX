@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.jadengore.pebblifx"
     android:versionCode="1"
-    android:versionName="1.0" >
+    android:versionName="0.6" >
 
     <uses-sdk
         android:minSdkVersion="14"
@@ -31,11 +31,6 @@
             android:name="com.jadengore.pebblifx.Preferences"
             android:label="@string/title_activity_preferences" >
         </activity>
-	    <receiver android:name="service.PebbLIFXService">  
-	        <intent-filter>  
-	            <action android:name="android.intent.action.BOOT_COMPLETED" />  
-	        </intent-filter>  
-	    </receiver>
         <service
             android:enabled="true"
 		    android:name="com.jadengore.pebblifx.service.PebbLIFXService"
