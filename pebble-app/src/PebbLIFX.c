@@ -75,7 +75,7 @@ static void bulb_change_state (int index) {
     if (dict_write_uint8(iter, 0, ON_OFF_REQUEST_KEY) != DICT_OK) {
         return;
     }
-    if (dict_write_uint8(iter, 1, index+1) != DICT_OK) {
+    if (dict_write_uint8(iter, 1, index + 1) != DICT_OK) {
         return;
     }
     if (dict_write_uint8(iter, 2, (bulbList[index].state == 0) ? 1 : 0) != DICT_OK) {
@@ -83,6 +83,9 @@ static void bulb_change_state (int index) {
     }
     app_message_outbox_send();
     bulbList[index].state = (bulbList[index].state == 0) ? 1 : 0;
+    //Update subtitle here.
+    bulb_menu[index].subtitle = (bulbList[index].state == 0) ? "Off" : "On";
+    layer_mark_dirty(simple_menu_layer_get_layer(simple_menu_layer));
     //  Log will tell if discovery request was sent.
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent On/Off Command");
 }
@@ -92,11 +95,38 @@ static void menu_select_callback (int index, void *ctx) {
     bulb_change_state(index);
 }
 
+static void all_lights_on_off_callback (int index, void *ctx) {
+    int countOfOn = 0;
+    for (int i = 0; i < numberOfBulbs; i++) {
+        countOfOn += bulbList[i].state;
+    }
+    DictionaryIterator *iter;
+    if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
+        return;
+    }
+    if (dict_write_uint8(iter, 0, ON_OFF_REQUEST_KEY) != DICT_OK) {
+        return;
+    }
+    if (dict_write_uint8(iter, 1, 0) != DICT_OK) {
+        return;
+    }
+    if (dict_write_uint8(iter, 2, (countOfOn > 0) ? 0 : 1) != DICT_OK) {
+        return;
+    }
+    app_message_outbox_send();
+    for (int i = 0; i < numberOfBulbs; i++) {
+        bulbList[i].state = (countOfOn > 0) ? 0 : 1;
+        bulb_menu[i].subtitle = (countOfOn > 0) ? "Off" : "On";
+    }
+    layer_mark_dirty(simple_menu_layer_get_layer(simple_menu_layer));
+    //  Log will tell if discovery request was sent.
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent On/Off Command");
+}
+
 //  Pebble app receives dictionary containing bulb info, etc.
 static void process_bulb_network_data (DictionaryIterator *iter) {
 
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Initiate processing of bulb network");
-
 
     numberOfBulbs = dict_find(iter, 1)->value->uint8;
 
@@ -117,7 +147,7 @@ static void process_bulb_network_data (DictionaryIterator *iter) {
     all_bulbs[0] = (SimpleMenuItem){
         // You should give each menu item a title and callback
         .title = "All Lights",
-        .callback = menu_select_callback,
+        .callback = all_lights_on_off_callback,
     };
 
     //  Create sections for the bulb names.
