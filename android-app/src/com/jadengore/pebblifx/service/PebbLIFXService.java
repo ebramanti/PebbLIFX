@@ -198,7 +198,7 @@ public class PebbLIFXService extends Service {
 				}
 			} else {
 				try {
-					bulbList.get(target).off();
+					bulbList.get(target-1).off();
 				} catch (IOException e) {
 					Log.e("PebbLIFXService", "Unable to turn off bulb " + target, e);
 				}
@@ -212,7 +212,7 @@ public class PebbLIFXService extends Service {
 				}
 			} else {
 				try {
-					bulbList.get(target).on();
+					bulbList.get(target-1).on();
 				} catch (IOException e) {
 					Log.e("PebbLIFXService", "Unable to turn on bulb " + target, e);
 				}

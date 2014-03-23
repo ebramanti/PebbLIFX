@@ -13,9 +13,11 @@ struct Bulb {
     uint8_t state;
     uint16_t brightness;
     uint16_t color;
-}
+};
 
-struct Bulb bulbList[];
+typedef struct Bulb Bulb;
+
+Bulb *bulbList;
 
 //  Materials for loading screen.
 static Window *loading_screen;
@@ -58,19 +60,31 @@ static void bulb_discovery_init (void) {
     if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
         return;
     }
-    //
-    // The problem is here.
-    //
-    if (dict_write_uint8(iter, BULB_DISCOVERY_REQUEST_KEY, 0) != DICT_OK) {
+    if (dict_write_uint8(iter, 0, BULB_DISCOVERY_REQUEST_KEY) != DICT_OK) {
         return;
     }
     app_message_outbox_send();
-    //  Log will tell if discovery request was sent.
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent Discovery Initialization");
 }
 
 static void bulb_change_state (int index) {
-
+    DictionaryIterator *iter;
+    if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
+        return;
+    }
+    if (dict_write_uint8(iter, 0, ON_OFF_REQUEST_KEY) != DICT_OK) {
+        return;
+    }
+    if (dict_write_uint8(iter, 1, index+1) != DICT_OK) {
+        return;
+    }
+    if (dict_write_uint8(iter, 2, (bulbList[index].state == 0) ? 1 : 0) != DICT_OK) {
+        return;
+    }
+    app_message_outbox_send();
+    bulbList[index].state = (bulbList[index].state == 0) ? 1 : 0;
+    //  Log will tell if discovery request was sent.
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent On/Off Command");
 }
 
 // You can capture when the user selects a menu icon with a menu item select callback.
@@ -86,20 +100,17 @@ static void process_bulb_network_data (DictionaryIterator *iter) {
 
     numberOfBulbs = dict_find(iter, 1)->value->uint8;
 
-    bulbList = malloc(sizeof(bulb)*numberOfBulbs);
+    bulbList = malloc(sizeof(Bulb)*numberOfBulbs);
 
     int j = 2;
     for (int i = 0; i < numberOfBulbs; i++) {
         bulbList[i] = (Bulb) {
             .label = (char*)dict_find(iter, j++)->value,
-            .state = (uint8_t)dict_find(iter, j++)->value,
-            .brightness = (uint16_t)dict_find(iter, j++)->value,
-            .color = (uint16_t)dict_find(iter, j++)->value,
+            .state = dict_find(iter, j++)->value->data[0],
+            .brightness = dict_find(iter, j++)->value->uint16,
+            .color = dict_find(iter, j++)->value->uint16,
         };
     }
-
-    // Little maggot array.
-    char bulbNames[numberOfBulbs][32];
 
     bulb_menu = malloc(sizeof(SimpleMenuItem) * numberOfBulbs);
 
@@ -110,12 +121,11 @@ static void process_bulb_network_data (DictionaryIterator *iter) {
     };
 
     //  Create sections for the bulb names.
-    int j = 2;
+    j = 2;
     for (int i = 0; i < numberOfBulbs; i++) {
-        strcpy(bulbNames[i], (char*)dict_find(iter, i+2)->value);
         bulb_menu[i] = (SimpleMenuItem){
-            .title = (char*)dict_find(iter, j++)->value,
-            .subtitle = (char*)dict_find(iter, j++)-> value,
+            .title = bulbList[i].label,
+            .subtitle = bulbList[i].state == 0 ? "Off" : "On",
             .callback = menu_select_callback,
         };
         APP_LOG(APP_LOG_LEVEL_INFO, "Added bulb to menu: %s", bulb_menu[i].title);
