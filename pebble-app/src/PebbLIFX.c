@@ -2,7 +2,17 @@
 
 #define NUM_MENU_SECTIONS 2
 
+//  Defined keys used in communication with companion Android app.
 #define BULB_DISCOVERY_REQUEST_KEY 0
+#define ON_OFF_REQUEST_KEY 1
+#define BRIGHTNESS_REQUEST_KEY 2
+#define COLOR_REQUEST_KEY 3
+
+//  Materials for loading screen.
+static Window *loading_screen;
+static TextLayer* loading_screen_text;
+
+char msg[8+1+20+1];
 
 static Window *window;
 static SimpleMenuLayer *simple_menu_layer;
@@ -15,8 +25,28 @@ int numberOfBulbs;
 static SimpleMenuItem all_bulbs[1];
 static SimpleMenuItem* bulb_list;
 
+void loading_screen_init (void) {
+    loading_screen = window_create();
+    loading_screen_text = text_layer_create(GRect(0,52,144,40));
+    text_layer_set_text_alignment(loading_screen_text, GTextAlignmentCenter); // Center the text.
+    text_layer_set_font(loading_screen_text, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+    msg[0] = 0; // Ensure the message starts with a null so strcat will overwrite it.
+    strcat(msg, "Loading ");
+    strcat(msg, "\nBulb Information...");
+    text_layer_set_text(loading_screen_text, msg);
+    layer_add_child(window_get_root_layer(loading_screen), text_layer_get_layer(loading_screen_text));
+    window_stack_push(loading_screen, true /* Animated */);
+    APP_LOG(APP_LOG_LEVEL_INFO, "Building Loading Window.");
+}
+
+void loading_screen_destroy (void) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Destroying Loading Window.");
+    text_layer_destroy(loading_screen_text);
+    window_destroy(loading_screen);
+}
+
 //  Pebble app queries phone to start discoverer on phone.
-static void bulb_discovery_init(void) {
+static void bulb_discovery_init (void) {
     DictionaryIterator *iter;
     if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
         return;
@@ -33,7 +63,7 @@ static void bulb_discovery_init(void) {
 }
 
 // You can capture when the user selects a menu icon with a menu item select callback. Doesn't do anything currently.
-static void menu_select_callback(int index, void *ctx) {
+static void menu_select_callback (int index, void *ctx) {
     // Here we just change the subtitle to a literal string
     //bulb_list[index].subtitle = "You've hit select here!";
     // Mark the layer to be updated
@@ -41,7 +71,7 @@ static void menu_select_callback(int index, void *ctx) {
 }
 
 //  Pebble app receives dictionary containing bulb info, etc.
-static void process_bulb_network_data(DictionaryIterator *iter) {
+static void process_bulb_network_data (DictionaryIterator *iter) {
 
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Initiate processing of bulb network");
 
@@ -78,6 +108,8 @@ static void process_bulb_network_data(DictionaryIterator *iter) {
         .items = bulb_list,
     };
 
+    // Here is where we will kill the loading screen.
+    loading_screen_destroy();
     // Now we prepare to initialize the simple menu layer
     // We need the bounds to specify the simple menu layer's viewport size
     // In this case, it'll be the same as the window's
@@ -92,7 +124,7 @@ static void process_bulb_network_data(DictionaryIterator *iter) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Added menu layer!");
 }
 
-static void handle_receive(DictionaryIterator *iter, void *context) {
+static void handle_receive (DictionaryIterator *iter, void *context) {
     int message_type = dict_read_first(iter)->value->uint8;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received response from phone");
     switch(message_type) {
@@ -114,19 +146,19 @@ static void handle_receive(DictionaryIterator *iter, void *context) {
 }
 
 //  Initializes app message protocols.
-static void app_message_init(void) {
+static void app_message_init (void) {
     app_message_open(app_message_inbox_size_maximum(), dict_calc_buffer_size(3, 3));
     app_message_register_inbox_received(handle_receive);
 }
 
 // This initializes the menu upon window load
-static void window_load(Window *window) {
+static void window_load (Window *window) {
     // SPLASH SCREEN HERE
 
 }
 
 // Deinitialize resources on window unload that were initialized on window load.
-void window_unload(Window *window) {
+void window_unload (Window *window) {
     simple_menu_layer_destroy(simple_menu_layer);
   // Cleanup the menu icon
   //gbitmap_destroy(menu_icon_image);
@@ -136,6 +168,9 @@ int main(void) {
 
     //  Initialize app message inbox/outbox.
     app_message_init();
+
+    //  Starts a loading screen until bulbs are finished being sent.
+    loading_screen_init();
 
     //  Sends message to phone to initialize discovery
     bulb_discovery_init();
