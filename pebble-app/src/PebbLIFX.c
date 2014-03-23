@@ -8,11 +8,20 @@
 #define BRIGHTNESS_REQUEST_KEY 2
 #define COLOR_REQUEST_KEY 3
 
+struct Bulb {
+    char* label;
+    uint8_t state;
+    uint16_t brightness;
+    uint16_t color;
+}
+
+struct Bulb bulbList[];
+
 //  Materials for loading screen.
 static Window *loading_screen;
 static TextLayer* loading_screen_text;
 
-char msg[8+1+20+1];
+static char* msg = "Loading\nBulb Info...";
 
 static Window *window;
 static SimpleMenuLayer *simple_menu_layer;
@@ -23,17 +32,15 @@ static SimpleMenuSection menu_sections[NUM_MENU_SECTIONS];
 int numberOfBulbs; 
 
 static SimpleMenuItem all_bulbs[1];
-static SimpleMenuItem* bulb_list;
+static SimpleMenuItem* bulb_menu;
 
 void loading_screen_init (void) {
     loading_screen = window_create();
     loading_screen_text = text_layer_create(GRect(0,52,144,40));
     text_layer_set_text_alignment(loading_screen_text, GTextAlignmentCenter); // Center the text.
     text_layer_set_font(loading_screen_text, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-    msg[0] = 0; // Ensure the message starts with a null so strcat will overwrite it.
-    strcat(msg, "Loading ");
-    strcat(msg, "\nBulb Information...");
     text_layer_set_text(loading_screen_text, msg);
+    text_layer_set_text_color(loading_screen_text, GColorBlack);
     layer_add_child(window_get_root_layer(loading_screen), text_layer_get_layer(loading_screen_text));
     window_stack_push(loading_screen, true /* Animated */);
     APP_LOG(APP_LOG_LEVEL_INFO, "Building Loading Window.");
@@ -62,12 +69,13 @@ static void bulb_discovery_init (void) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent Discovery Initialization");
 }
 
-// You can capture when the user selects a menu icon with a menu item select callback. Doesn't do anything currently.
+static void bulb_change_state (int index) {
+
+}
+
+// You can capture when the user selects a menu icon with a menu item select callback.
 static void menu_select_callback (int index, void *ctx) {
-    // Here we just change the subtitle to a literal string
-    //bulb_list[index].subtitle = "You've hit select here!";
-    // Mark the layer to be updated
-    layer_mark_dirty(simple_menu_layer_get_layer(simple_menu_layer));
+    bulb_change_state(index);
 }
 
 //  Pebble app receives dictionary containing bulb info, etc.
@@ -75,11 +83,25 @@ static void process_bulb_network_data (DictionaryIterator *iter) {
 
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Initiate processing of bulb network");
 
+
     numberOfBulbs = dict_find(iter, 1)->value->uint8;
+
+    bulbList = malloc(sizeof(bulb)*numberOfBulbs);
+
+    int j = 2;
+    for (int i = 0; i < numberOfBulbs; i++) {
+        bulbList[i] = (Bulb) {
+            .label = (char*)dict_find(iter, j++)->value,
+            .state = (uint8_t)dict_find(iter, j++)->value,
+            .brightness = (uint16_t)dict_find(iter, j++)->value,
+            .color = (uint16_t)dict_find(iter, j++)->value,
+        };
+    }
+
     // Little maggot array.
     char bulbNames[numberOfBulbs][32];
 
-    bulb_list = malloc(sizeof(SimpleMenuItem) * numberOfBulbs);
+    bulb_menu = malloc(sizeof(SimpleMenuItem) * numberOfBulbs);
 
     all_bulbs[0] = (SimpleMenuItem){
         // You should give each menu item a title and callback
@@ -88,13 +110,15 @@ static void process_bulb_network_data (DictionaryIterator *iter) {
     };
 
     //  Create sections for the bulb names.
+    int j = 2;
     for (int i = 0; i < numberOfBulbs; i++) {
         strcpy(bulbNames[i], (char*)dict_find(iter, i+2)->value);
-        bulb_list[i] = (SimpleMenuItem){
-            .title = (char*)dict_find(iter, i+2)->value,
+        bulb_menu[i] = (SimpleMenuItem){
+            .title = (char*)dict_find(iter, j++)->value,
+            .subtitle = (char*)dict_find(iter, j++)-> value,
             .callback = menu_select_callback,
         };
-        APP_LOG(APP_LOG_LEVEL_INFO, "Added bulb to menu: %s", bulb_list[i].title);
+        APP_LOG(APP_LOG_LEVEL_INFO, "Added bulb to menu: %s", bulb_menu[i].title);
     }
     APP_LOG(APP_LOG_LEVEL_INFO, "Total bulbs found: %d", numberOfBulbs);
     menu_sections[0] = (SimpleMenuSection){
@@ -105,11 +129,11 @@ static void process_bulb_network_data (DictionaryIterator *iter) {
         // Menu sections can also have titles as well
         .title = "Bulbs",
         .num_items = numberOfBulbs,
-        .items = bulb_list,
+        .items = bulb_menu,
     };
 
     // Here is where we will kill the loading screen.
-    loading_screen_destroy();
+    //loading_screen_destroy();
     // Now we prepare to initialize the simple menu layer
     // We need the bounds to specify the simple menu layer's viewport size
     // In this case, it'll be the same as the window's
@@ -170,7 +194,7 @@ int main(void) {
     app_message_init();
 
     //  Starts a loading screen until bulbs are finished being sent.
-    loading_screen_init();
+    //loading_screen_init();
 
     //  Sends message to phone to initialize discovery
     bulb_discovery_init();

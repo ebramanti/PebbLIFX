@@ -9,6 +9,7 @@ import com.getpebble.android.kit.util.PebbleDictionary;
 
 import me.akrs.AndroidLIFX.network.Bulb;
 import me.akrs.AndroidLIFX.network.BulbNetwork;
+import me.akrs.AndroidLIFX.utils.BulbStatus;
 import me.akrs.AndroidLIFX.utils.android.Discoverer;
 
 import android.app.Service;
@@ -26,7 +27,7 @@ public class PebbLIFXService extends Service {
 	
 	
 	public PebbLIFXService() {
-		// F.
+		// Nothing to do here.
 	}
 	
 	public void onCreate() {
@@ -115,8 +116,19 @@ public class PebbLIFXService extends Service {
 				PebbleDictionary bulbData = new PebbleDictionary();
 				bulbData.addUint8(0, (byte) 1);
 				bulbData.addUint8(1, (byte) numberOfBulbs); // Will only allow 255 bulbs to be passed.
-				for (int i = 2; i < numberOfBulbs + 2; i++) {
-					bulbData.addString(i, bulbList.get(i - 2).getName());
+				int j = 2;
+				for (int i = 0; i < numberOfBulbs; i++) {
+					// First get the bulb name.
+					bulbData.addString(j++, bulbList.get(i).getName());
+					// Find out whether bulbs are on or off.
+					BulbStatus a = bulbList.get(i).getStatus();
+					if (a == BulbStatus.ON) {
+						bulbData.addUint8(j++, (byte)1);
+					} else {
+						bulbData.addUint8(j++, (byte)0);
+					}
+					bulbData.addUint16(j++, bulbList.get(i).getLuminance());
+					bulbData.addUint16(j++, bulbList.get(i).getHue());
 				}
 				Log.i("Dictionary", bulbData.toJsonString());
 				PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, bulbData);
@@ -167,12 +179,15 @@ public class PebbLIFXService extends Service {
 	    case 3: // Adjusts color of bulbs.
 	    	color(dictionary.getUnsignedInteger(1).intValue(), convertSigned(dictionary.getUnsignedInteger(2).intValue()));
 	    	break;
+	    case 4: // Get bulb status. INDIVIDUAL BULBS ONLY.
+	    	bulbStatus(dictionary.getUnsignedInteger(1).intValue());
+	    	break;
 	    default:
 	    	Log.e("PebbLIFXService", "Received unexpected value/message from Pebble: " + type);
 	    	break;
 	    }
 	}
-	
+
 	public void onOff(int target, int state) {
 		if (state == 0) {
 			if (target == 0) {
@@ -207,13 +222,13 @@ public class PebbLIFXService extends Service {
 	}
 	
 	public void brightness (int target, short level) {
-		// TODO BRIGHTNESS
+		// TODO BRIGHTNESS for all
 		if (target == 0) {
-			try {
+			/*try {
 				//net.brightness(level); or setState somehow
 			} catch (IOException e) {
 				Log.e("PebbLIFXService", "Unable to set brightness for all bulbs.", e);
-			}
+			} */
 		} else {
 			try {
 				bulbList.get(target).setBrightness(level);
@@ -225,19 +240,29 @@ public class PebbLIFXService extends Service {
 	}
 	
 	public void color (int target, short color) {
-		// TODO COLOR
+		// TODO COLOR for all
 		if (target == 0) {
-			try {
+			/*try {
 				//net.color(color); or setState somehow
 			} catch (IOException e) {
 				Log.e("PebbLIFXService", "Unable to set color for all bulbs.", e);
-			}
+			} */
 		} else {
 			try {
 				bulbList.get(target).setHue(color);
 			} catch (IOException e) {
 				Log.e("PebbLIFXService", "Unable to set color for bulb " + target, e);
 			}
+		}
+		ack();
+	}
+	
+	public void bulbStatus(int target) {
+		// This will check that individual bulbs are being targeted.
+		if (target > 0) {
+			bulbList.get(target).getStatus();
+		} else {
+			Log.e("Error: ", "Can only get status for individual bulb.");
 		}
 		ack();
 	}
