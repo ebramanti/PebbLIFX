@@ -3,7 +3,7 @@ package com.jadengore.pebblifx;
 //import java.io.IOException;
 
 import com.getpebble.android.kit.PebbleKit;
-import com.jadengore.pebblifx.service.pebblifxservice;
+import com.jadengore.pebblifx.service.PebbLIFXService;
 
 import android.os.Bundle;
 import android.app.Activity;
@@ -15,7 +15,7 @@ public class MainActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		
-		startService(new Intent(getApplicationContext(), pebblifxservice.class));
+		startService(new Intent(getApplicationContext(), PebbLIFXService.class));
 		
 		
 		//PebbLIFXService.onStart(i);

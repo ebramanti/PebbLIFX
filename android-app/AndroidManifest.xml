@@ -38,7 +38,7 @@
 	    </receiver>
         <service
             android:enabled="true"
-		    android:name="com.jadengore.pebblifx.service.pebblifxservice"
+		    android:name="com.jadengore.pebblifx.service.PebbLIFXService"
 		    android:icon="@drawable/pebblifxlogo"
 		    android:label="@string/app_name"
             >

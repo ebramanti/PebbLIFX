@@ -11,7 +11,7 @@ public class PebbLIFXBroadcastReceiver extends BroadcastReceiver {
 	}
 	
 	public void onReceive(Context context, Intent intent) {
-        Intent startServiceIntent = new Intent(context, pebblifxservice.class);
+        Intent startServiceIntent = new Intent(context, PebbLIFXService.class);
         context.startService(startServiceIntent);
     }
 
