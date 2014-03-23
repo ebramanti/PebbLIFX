@@ -1,20 +1,25 @@
 package com.jadengore.pebblifx;
 
-import java.io.IOException;
+//import java.io.IOException;
+
+import com.getpebble.android.kit.PebbleKit;
+import com.jadengore.pebblifx.service.pebblifxservice;
 
 import android.os.Bundle;
 import android.app.Activity;
+import android.content.Intent;
+import android.util.Log;
 import android.view.Menu;
-import me.akrs.AndroidLIFX.network.BulbNetwork;
+//import me.akrs.AndroidLIFX.network.BulbNetwork;
 import me.akrs.AndroidLIFX.utils.android.Discoverer;
-import me.akrs.AndroidLIFX.utils.android.Logger;
+//import me.akrs.AndroidLIFX.utils.android.Logger;
 
 public class MainActivity extends Activity {
 	
 	Discoverer d;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		d = new Discoverer(getApplicationContext());
+		/*d = new Discoverer(getApplicationContext());
 		d.startSearch();
 		BulbNetwork net = d.getBulbNetwork();
 		//	This is bad. But necessary for now.
@@ -33,10 +38,19 @@ public class MainActivity extends Activity {
 			net.on();
 		} catch (IOException e) {
 			Logger.log("Off command unsuccessful.", e);
-		}
+		} */
+		
+		//Intent i = new Intent();
+		
+		startService(new Intent(getApplicationContext(), pebblifxservice.class));
+		
+		
+		//PebbLIFXService.onStart(i);
+		
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		
+		boolean connected = PebbleKit.isWatchConnected(getApplicationContext());
+		Log.i(getLocalClassName(), "Pebble is " + (connected ? "connected" : "not connected"));
 	}
 
 	@Override

@@ -17,23 +17,29 @@ import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
 
-public class PebbLIFXService extends Service {
+public class pebblifxservice extends Service {
 	
-	protected final static UUID PEBBLE_APP_UUID = UUID.fromString("0079c607-a1af-4308-a743-3c1afbc7387d");
+	private final static UUID PEBBLE_APP_UUID = UUID.fromString("0079C607-A1AF-4308-A743-3C1AFBC7387D");
 	private List<Bulb> bulbList;
 	private BulbNetwork net;
 	private int transactionId;
 	
 	
-	public PebbLIFXService() {
+	public pebblifxservice() {
 		// TODO
+	}
+	
+	public void onCreate() {
+		super.onCreate();
+		Log.d(getPackageName(), "Created PebbLIFX Service");
 	}
 	
 	private void ack() {
 		PebbleKit.sendAckToPebble(getApplicationContext(), this.transactionId);
 	}
 	
-	public int onStart(Intent intent, int flags, int startId) {
+	public int onStartCommand(Intent intent, int flags, int startId) {
+		Log.i("", "Maggot detected");
 		PebbleKit.registerReceivedDataHandler(this, new PebbleKit.PebbleDataReceiver(PEBBLE_APP_UUID) {
 		    @Override
 		    public void receiveData(final Context context, final int transactionId, final PebbleDictionary data) {
@@ -85,12 +91,15 @@ public class PebbLIFXService extends Service {
 		bulbList = net.getBulbList();
 		d.stopSearch();
 		int numberOfBulbs = bulbList.size();
-		PebbleDictionary bulbData = new PebbleDictionary();
-		bulbData.addUint8(0, (byte) numberOfBulbs); // Will only allow 255 bulbs to be passed.
-		for (int i = 1; i < numberOfBulbs + 1; i++) {
-			bulbData.addString(i, bulbList.get(i - 1).toString());
+		if (PebbleKit.areAppMessagesSupported(getApplicationContext())) {
+			PebbleDictionary bulbData = new PebbleDictionary();
+			bulbData.addUint8(0, (byte) 1);
+			bulbData.addUint8(1, (byte) numberOfBulbs); // Will only allow 255 bulbs to be passed.
+			for (int i = 2; i < numberOfBulbs + 2; i++) {
+				bulbData.addString(i, bulbList.get(i - 2).toString());
+			}
+			PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, bulbData);
 		}
-		PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, bulbData);
 	}
 	
 	public void onOff(int target, int state) {
@@ -128,11 +137,21 @@ public class PebbLIFXService extends Service {
 	
 	public void brightness (int target, short level) {
 		// TODO BRIGHTNESS
+		if (target == 0) {
+			
+		} else {
+			
+		}
 		ack();
 	}
 	
 	public void color (int target, short color) {
 		// TODO COLOR
+		if (target == 0) {
+			
+		} else {
+			
+		}
 		ack();
 	}
 
