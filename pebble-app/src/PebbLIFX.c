@@ -4,9 +4,10 @@
 
 //  Defined keys used in communication with companion Android app.
 #define BULB_DISCOVERY_REQUEST_KEY 0
-#define ON_OFF_REQUEST_KEY 1
-#define BRIGHTNESS_REQUEST_KEY 2
-#define COLOR_REQUEST_KEY 3
+#define APP_CLOSE_KEY 1
+#define ON_OFF_REQUEST_KEY 2
+#define BRIGHTNESS_REQUEST_KEY 3
+#define COLOR_REQUEST_KEY 4
 
 struct Bulb {
     char* label;
@@ -20,10 +21,10 @@ typedef struct Bulb Bulb;
 Bulb *bulbList;
 
 //  Materials for loading screen.
-static Window *loading_screen;
+// static Window *loading_screen;
 static TextLayer* loading_screen_text;
 
-static char* msg = "Loading\nBulb Info...";
+static char* msg = "Loading Bulb Info...";
 
 static Window *window;
 static SimpleMenuLayer *simple_menu_layer;
@@ -31,28 +32,26 @@ static SimpleMenuLayer *simple_menu_layer;
 // A simple menu layer can have multiple sections
 static SimpleMenuSection menu_sections[NUM_MENU_SECTIONS];
 
-int numberOfBulbs; 
+int numberOfBulbs;
 
 static SimpleMenuItem all_bulbs[1];
 static SimpleMenuItem* bulb_menu;
 
-void loading_screen_init (void) {
-    loading_screen = window_create();
-    loading_screen_text = text_layer_create(GRect(0,52,144,40));
-    text_layer_set_text_alignment(loading_screen_text, GTextAlignmentCenter); // Center the text.
-    text_layer_set_font(loading_screen_text, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-    text_layer_set_text(loading_screen_text, msg);
-    text_layer_set_text_color(loading_screen_text, GColorBlack);
-    layer_add_child(window_get_root_layer(loading_screen), text_layer_get_layer(loading_screen_text));
-    window_stack_push(loading_screen, true /* Animated */);
-    APP_LOG(APP_LOG_LEVEL_INFO, "Building Loading Window.");
-}
+// void loading_screen_init (void) {
+//     loading_screen_text = text_layer_create(GRect(0,52,144,40));
+//     text_layer_set_text_alignment(loading_screen_text, GTextAlignmentCenter); // Center the text.
+//     text_layer_set_font(loading_screen_text, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+//     text_layer_set_text(loading_screen_text, msg);
+//     text_layer_set_text_color(loading_screen_text, GColorBlack);
+//     layer_add_child(window_get_root_layer(window), text_layer_get_layer(loading_screen_text));
+//     APP_LOG(APP_LOG_LEVEL_INFO, "Building Loading Window.");
+// }
 
-void loading_screen_destroy (void) {
-    APP_LOG(APP_LOG_LEVEL_INFO, "Destroying Loading Window.");
-    text_layer_destroy(loading_screen_text);
-    window_destroy(loading_screen);
-}
+// void loading_screen_destroy (void) {
+//     APP_LOG(APP_LOG_LEVEL_INFO, "Destroying Loading Window.");
+//     text_layer_destroy(loading_screen_text);
+//     window_destroy(loading_screen);
+// }
 
 //  Pebble app queries phone to start discoverer on phone.
 static void bulb_discovery_init (void) {
@@ -184,6 +183,7 @@ static void process_bulb_network_data (DictionaryIterator *iter) {
     simple_menu_layer = simple_menu_layer_create(bounds, window, menu_sections, NUM_MENU_SECTIONS, NULL);
 
     // Add it to the window for display
+    text_layer_destroy(loading_screen_text);
     layer_add_child(window_layer, simple_menu_layer_get_layer(simple_menu_layer));
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Added menu layer!");
 }
@@ -217,13 +217,33 @@ static void app_message_init (void) {
 
 // This initializes the menu upon window load
 static void window_load (Window *window) {
-    // SPLASH SCREEN HERE
+    loading_screen_text = text_layer_create(GRect(0,52,144,40));
+    text_layer_set_text_alignment(loading_screen_text, GTextAlignmentCenter); // Center the text.
+    text_layer_set_font(loading_screen_text, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+    text_layer_set_text(loading_screen_text, msg);
+    text_layer_set_text_color(loading_screen_text, GColorBlack);
+    layer_add_child(window_get_root_layer(window), text_layer_get_layer(loading_screen_text));
+    APP_LOG(APP_LOG_LEVEL_INFO, "Building Loading Window.");
+}
 
+void send_close_signal() {
+    DictionaryIterator *iter;
+    if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
+        return;
+    }
+    if (dict_write_uint8(iter, 0, APP_CLOSE_KEY) != DICT_OK) {
+        return;
+    }
+    app_message_outbox_send();
 }
 
 // Deinitialize resources on window unload that were initialized on window load.
 void window_unload (Window *window) {
-    simple_menu_layer_destroy(simple_menu_layer);
+    if (simple_menu_layer) {
+        simple_menu_layer_destroy(simple_menu_layer);
+    }
+
+    send_close_signal();
   // Cleanup the menu icon
   //gbitmap_destroy(menu_icon_image);
 }
