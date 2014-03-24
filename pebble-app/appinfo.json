@@ -3,8 +3,8 @@
   "shortName": "PebbLIFX",
   "longName": "PebbLIFX",
   "companyName": "Edward Bramanti",
-  "versionCode": 1,
-  "versionLabel": "1.0.0",
+  "versionCode": 6,
+  "versionLabel": "0.6",
   "watchapp": {
     "watchface": false
   },
