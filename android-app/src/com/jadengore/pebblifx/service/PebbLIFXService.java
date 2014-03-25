@@ -1,28 +1,30 @@
 package com.jadengore.pebblifx.service;
 
-import java.io.IOException;
-import java.util.List;
+//import com.jadengore.pebblifx.utils.Converters;
+
+import java.util.ArrayList;
 import java.util.UUID;
 
 import com.getpebble.android.kit.PebbleKit;
 import com.getpebble.android.kit.util.PebbleDictionary;
 
-import me.akrs.AndroidLIFX.network.Bulb;
-import me.akrs.AndroidLIFX.network.BulbNetwork;
-import me.akrs.AndroidLIFX.utils.BulbStatus;
-import me.akrs.AndroidLIFX.utils.android.Discoverer;
-
+import lifx.java.android.client.LFXClient;
+import lifx.java.android.entities.LFXHSBKColor;
+import lifx.java.android.entities.LFXTypes.LFXPowerState;
+import lifx.java.android.light.LFXLight;
+import lifx.java.android.network_context.LFXNetworkContext;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
 
+
 public class PebbLIFXService extends Service {
 	
 	private final static UUID PEBBLE_APP_UUID = UUID.fromString("0079C607-A1AF-4308-A743-3C1AFBC7387D");
-	private List<Bulb> bulbList;
-	private BulbNetwork net;
+	private ArrayList<LFXLight> bulbList;
+	private LFXNetworkContext localNetworkContext;
 	private int transactionId;
 	
 	
@@ -53,7 +55,7 @@ public class PebbLIFXService extends Service {
 	}
 	
 	//	Helper method for converting signed numbers in Java.
-	private short convertSigned (int value) {
+	private short convertSigned (float value) {
 		if (value > Short.MAX_VALUE) {
 			return (short)(value + Integer.MIN_VALUE);
 		} else {
@@ -65,19 +67,19 @@ public class PebbLIFXService extends Service {
 	public void sendMessage (int type) {
 		switch (type) {
 		case 0: // No network was found.
-			Log.e("Error Sent: ", "No network found.");
+			Log.e("PebbLIFXService", "Error Sent: No network found.");
 			noNetworkFound();
 			break;
 		case 1:
-			Log.i("Responding: ", "Bulb List Requested");
+			Log.i("PebbLIFXService", "Responding: Bulb List Requested");
 			discover();
 			break;
 		case 2:
-			Log.i("Responding: ", "Change Bulb State Requested");
+			Log.i("PebbLIFXService", "Responding: Change Bulb State Requested");
 			//bulbState(); 	// TODO passing values
 			break;
 		case 3:
-			Log.e("Error Sent: ", "Lost Connection to Bulbs.");
+			Log.e("PebbLIFXService", "Error Sent: Lost Connection to Bulbs.");
 			lostConnection();
 			break;
 		default:
@@ -100,19 +102,14 @@ public class PebbLIFXService extends Service {
 		PebbleKit.closeAppOnPebble(getApplicationContext(), PEBBLE_APP_UUID);
 	}
 	
-	//@SuppressWarnings("static-access")
 	public void discover() {
-		Discoverer d = new Discoverer(getApplicationContext());
-		d.startSearch();
-		d.sleepThread(2500); // best way to wait for bulbs
-		if (d.getBulbNetwork() == null) {
+		localNetworkContext = LFXClient.getSharedInstance(getApplicationContext()).getLocalNetworkContext();
+	    localNetworkContext.connect();
+	    bulbList = localNetworkContext.getAllLightsCollection().getLights();
+		if (bulbList == null) {
 			Log.e("PebbLIFXService","Nothing returned. No network found.");
-			d.stopSearch();
 			sendMessage(0);
 		} else {
-			net = d.getBulbNetwork();
-			bulbList = net.getBulbList();
-			d.stopSearch();
 			Log.i("PebbLIFXService", "Search has completed.");
 			int numberOfBulbs = bulbList.size();
 			if (PebbleKit.areAppMessagesSupported(getApplicationContext())) {
@@ -122,16 +119,16 @@ public class PebbLIFXService extends Service {
 				int j = 2;
 				for (int i = 0; i < numberOfBulbs; i++) {
 					// First get the bulb name.
-					bulbData.addString(j++, bulbList.get(i).getName());
+					bulbData.addString(j++, bulbList.get(i).getLabel());
 					// Find out whether bulbs are on or off.
-					BulbStatus a = bulbList.get(i).getStatus();
-					if (a == BulbStatus.ON) {
+					LFXPowerState a = bulbList.get(i).getPowerState();
+					if (a == LFXPowerState.ON) {
 						bulbData.addUint8(j++, (byte)1);
 					} else {
 						bulbData.addUint8(j++, (byte)0);
 					}
-					bulbData.addUint16(j++, bulbList.get(i).getLuminance());
-					bulbData.addUint16(j++, bulbList.get(i).getHue());
+					bulbData.addUint16(j++, convertSigned(bulbList.get(i).getColor().getBrightness()));
+					bulbData.addUint16(j++, convertSigned(bulbList.get(i).getColor().getHue()));
 				}
 				Log.i("PebbLIFXService", "Dictionary -> " + bulbData.toJsonString());
 				PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, bulbData);
@@ -158,7 +155,7 @@ public class PebbLIFXService extends Service {
 			PebbleDictionary lostConnection = new PebbleDictionary();
 			lostConnection.addUint8(0, (byte) 0);
 			lostConnection.addUint8(1, (byte) 0); // Filler value
-			lostConnection.addString(2, "Network Connection \nLost."); // See if this is valid in C.
+			lostConnection.addString(2, "Network Connection Lost."); // See if this is valid in C.
 			Log.i("Dictionary", lostConnection.toJsonString());
 			PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, lostConnection);
 			Log.i("PebbLIFXService", "Data sent.");
@@ -174,14 +171,8 @@ public class PebbLIFXService extends Service {
 	    	Log.i("PebbLIFXService", "Discovery complete.");
 	    	break;
 	    case 1: //Pebble app on phone close.
-	    	try {
-				if (net != null) {
-					net.close();
-					Log.i("PebbLIFXService", "Network closed.");
-				}
-			} catch (IOException e) {
-				Log.e("PebbLIFXService", "Problem detected on net.close()");
-			}
+	    	localNetworkContext.disconnect();
+			Log.i("PebbLIFXService", "Network closed.");
 	    	break;
 	    case 2: // Turns bulbs on or off.
 	    	Log.i("PebbLIFXService", "On/off command received.");
@@ -193,7 +184,7 @@ public class PebbLIFXService extends Service {
 	    	break;
 	    case 4: // Adjusts color of bulbs.
 	    	Log.i("PebbLIFXService", "Color adjustment command received.");
-	    	color(dictionary.getUnsignedInteger(1).intValue(), convertSigned(dictionary.getUnsignedInteger(2).intValue()));
+	    	//color(dictionary.getUnsignedInteger(1).intValue(), convertSigned(dictionary.getUnsignedInteger(2).intValue()));
 	    	break;
 	    case 5: // Get bulb status. INDIVIDUAL BULBS ONLY.
 	    	Log.i("PebbLIFXService", "Bulb status command received.");
@@ -208,31 +199,15 @@ public class PebbLIFXService extends Service {
 	public void onOff(int target, int state) {
 		if (state == 0) {
 			if (target == 0) {
-				try {
-					net.off();
-				} catch (IOException e) {
-					Log.e("PebbLIFXService", "Unable to turn off all bulbs.", e);
-				}
+				localNetworkContext.getAllLightsCollection().setPowerState(LFXPowerState.OFF);
 			} else {
-				try {
-					bulbList.get(target-1).off();
-				} catch (IOException e) {
-					Log.e("PebbLIFXService", "Unable to turn off bulb " + target, e);
-				}
+				bulbList.get(target-1).setPowerState(LFXPowerState.OFF);
 			}	
 		} else {
 			if (target == 0) {
-				try {
-					net.on();
-				} catch (IOException e) {
-					Log.e("PebbLIFXService", "Unable to turn on all bulbs.", e);
-				}
+				localNetworkContext.getAllLightsCollection().setPowerState( LFXPowerState.ON);
 			} else {
-				try {
-					bulbList.get(target-1).on();
-				} catch (IOException e) {
-					Log.e("PebbLIFXService", "Unable to turn on bulb " + target, e);
-				}
+				bulbList.get(target-1).setPowerState(LFXPowerState.ON);
 			}	
 		}
 		ack();
@@ -247,29 +222,27 @@ public class PebbLIFXService extends Service {
 				Log.e("PebbLIFXService", "Unable to set brightness for all bulbs.", e);
 			} */
 		} else {
-			try {
-				bulbList.get(target).setBrightness(level);
-			} catch (IOException e) {
-				Log.e("PebbLIFXService", "Unable to set brightness for bulb " + target, e);
-			}
+			//bulbList.get(target - 1).setBrightness(null);
 		}	
 		ack();
 	}
 	
-	public void color (int target, short color) {
-		// TODO COLOR for all
+	//public void color (int target, short color) {
+	public void color (int target, int r, int g, int b) {
 		if (target == 0) {
-			/*try {
-				//net.color(color); or setState somehow
-			} catch (IOException e) {
-				Log.e("PebbLIFXService", "Unable to set color for all bulbs.", e);
-			} */
+			// TODO HSBK COLOR
+			LFXHSBKColor color = localNetworkContext.getAllLightsCollection().getColor();
+			//int kelvin = color.getKelvin();
+			float[] currentHSB = new float[3];
+			currentHSB[0] = color.getHue();
+			currentHSB[1] = color.getSaturation();
+			currentHSB[2] = color.getBrightness();
+			Log.i("PebbLIFXService", "HSBKColor" + color.toString());
+			//float[] colorArray = Converters.RGBtoHSB(r,g,b,currentHSB);
+			//LFXHSBKColor result = new LFXHSBKColor(currentHSB[0],currentHSB[1],currentHSB[2],kelvin)
+			localNetworkContext.getAllLightsCollection().setColor(color);
 		} else {
-			try {
-				bulbList.get(target).setHue(color);
-			} catch (IOException e) {
-				Log.e("PebbLIFXService", "Unable to set color for bulb " + target, e);
-			}
+			bulbList.get(target - 1).setColor(null);
 		}
 		ack();
 	}
@@ -277,13 +250,12 @@ public class PebbLIFXService extends Service {
 	public void bulbStatus(int target) {
 		// This will check that individual bulbs are being targeted.
 		if (target > 0) {
-			bulbList.get(target).getStatus();
+			bulbList.get(target - 1).getPowerState();
 		} else {
 			Log.e("Error: ", "Can only get status for individual bulb.");
 		}
 		ack();
 	}
-	
 
 	@Override
 	public IBinder onBind(Intent arg0) {
