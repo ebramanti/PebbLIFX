@@ -3,36 +3,44 @@ package com.jadengore.pebblifx;
 //import java.io.IOException;
 
 import com.getpebble.android.kit.PebbleKit;
-//import com.jadengore.pebblifx.service.PebbLIFXBroadcastReceiver;
 import com.jadengore.pebblifx.service.PebbLIFXService;
 
 import android.os.Bundle;
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningServiceInfo;
+import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
-import android.view.Menu;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		
-		//startService(new Intent(getApplicationContext(), PebbLIFXService.class));
-		
-		startService(new Intent(getApplicationContext(), PebbLIFXService.class));
-		
-		//PebbLIFXService.onStart(i);
+		if (serviceRunning()) {
+			stopService(new Intent(getApplicationContext(), PebbLIFXService.class));
+			Toast.makeText(getApplicationContext(), "PebbLIFXService stopped.", Toast.LENGTH_SHORT).show();
+		} else {
+			Intent bindIntent = new Intent(getApplicationContext(), PebbLIFXService.class);
+			startService(bindIntent);
+			boolean connected = PebbleKit.isWatchConnected(getApplicationContext());
+			String pebbleStatus = (connected ? "connected" : "not connected");
+			Toast.makeText(getApplicationContext(), "PebbLIFXService started, Pebble " + pebbleStatus , Toast.LENGTH_SHORT).show();
+			Log.i(getLocalClassName(), "Pebble is " + (connected ? "connected" : "not connected"));
+		}
 		
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
-		boolean connected = PebbleKit.isWatchConnected(getApplicationContext());
-		Log.i(getLocalClassName(), "Pebble is " + (connected ? "connected" : "not connected"));
+		finish();
 	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
-		return true;
+	
+	private boolean serviceRunning() {
+	    ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+	    for (RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+	        if (PebbLIFXService.class.getName().equals(service.service.getClassName())) {
+	            return true;
+	        }
+	    }
+	    return false;
 	}
 
 }

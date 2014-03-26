@@ -34,7 +34,7 @@ public class PebbLIFXService extends Service {
 	}
 	
 	public void onCreate() {
-		super.onCreate();
+		startService(new Intent(getApplicationContext(),PebbLIFXService.class));
 		Log.d(getPackageName(), "Created PebbLIFX Service");
 	}
 	
