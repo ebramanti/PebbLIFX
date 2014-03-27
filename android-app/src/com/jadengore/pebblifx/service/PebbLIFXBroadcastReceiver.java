@@ -9,7 +9,7 @@ public class PebbLIFXBroadcastReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.i("PebbLIFXBroadcastService", "Connected to WiFi, PebbLIFXService started.");
+        Log.i("PebbLIFXBroadcastService", "Boot complete, PebbLIFXService started.");
         context.startService(new Intent(context, PebbLIFXService.class));
     }
 }

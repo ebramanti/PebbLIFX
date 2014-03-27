@@ -4,6 +4,7 @@ package com.jadengore.pebblifx.service;
 
 import java.util.ArrayList;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import com.getpebble.android.kit.PebbleKit;
 import com.getpebble.android.kit.util.PebbleDictionary;
@@ -18,6 +19,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.Toast;
 
 
 public class PebbLIFXService extends Service {
@@ -34,7 +36,7 @@ public class PebbLIFXService extends Service {
 	}
 	
 	public void onCreate() {
-		startService(new Intent(getApplicationContext(),PebbLIFXService.class));
+		//startService(new Intent(getApplicationContext(),PebbLIFXService.class));
 		Log.d(getPackageName(), "Created PebbLIFX Service");
 	}
 	
@@ -47,9 +49,17 @@ public class PebbLIFXService extends Service {
 		    @Override
 		    public void receiveData(final Context context, final int transactionId, final PebbleDictionary data) {
 		      Log.i("PebbLIFXService", "Received value = " + data.getUnsignedInteger(0) + " for key: 0");
-		      receiveMessage(data, transactionId);
+		      if (data.getUnsignedInteger(0) == 1 && LFXClient.getSharedInstance(getApplicationContext()).getLocalNetworkContext().isConnected() == false) {
+		    	  // do nothing
+		      } else {
+		    	  receiveMessage(data, transactionId);
+		      }
 		    }
 		});
+		boolean connected = PebbleKit.isWatchConnected(getApplicationContext());
+		String pebbleStatus = (connected ? "connected" : "not connected");
+		Toast.makeText(getApplicationContext(), "PebbLIFXService started, Pebble " + pebbleStatus , Toast.LENGTH_SHORT).show();
+		Log.i("PebbleLIFXService", "Pebble is " + (connected ? "connected" : "not connected"));
 		// http://stackoverflow.com/questions/15758980/android-service-need-to-run-alwaysnever-pause-or-stop
 		return START_STICKY;
 	}
@@ -131,8 +141,19 @@ public class PebbLIFXService extends Service {
 					bulbData.addUint16(j++, convertSigned(bulbList.get(i).getColor().getHue()));
 				}
 				Log.i("PebbLIFXService", "Dictionary -> " + bulbData.toJsonString());
-				PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, bulbData);
-				Log.i("PebbLIFXService", "Data sent.");
+				//if (bulbData.size() > 2) {
+					PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, bulbData);
+					Log.i("PebbLIFXService", "Data sent.");
+				/*} else {
+					try {
+						TimeUnit.SECONDS.sleep(1);
+					} catch (InterruptedException e) {
+						Log.e("PebbLIFXService", "Issue with wait on discovery fail.", e);
+					}
+					noNetworkFound();
+					localNetworkContext.disconnect();
+					Log.i("PebbLIFXService", "Network closed.");
+				}*/
 			}
 		}
 	}
@@ -170,7 +191,7 @@ public class PebbLIFXService extends Service {
 	    	discover();
 	    	Log.i("PebbLIFXService", "Discovery complete.");
 	    	break;
-	    case 1: //Pebble app on phone close.
+	    case 1: //Pebble app close.
 	    	localNetworkContext.disconnect();
 			Log.i("PebbLIFXService", "Network closed.");
 	    	break;
