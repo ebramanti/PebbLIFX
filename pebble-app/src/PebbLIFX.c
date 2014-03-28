@@ -20,12 +20,11 @@ typedef struct Bulb Bulb;
 
 Bulb *bulbList;
 
-//  Materials for loading screen.
-// static Window *loading_screen;
-static TextLayer* loading_screen_text;
+static TextLayer *loading_screen_text;
 
-static char* msg = "Loading Bulb Info...";
+// static char *msg = "Loading Bulb Info...";
 
+static BitmapLayer *bulb_graphics_layer;
 static Window *window;
 static SimpleMenuLayer *simple_menu_layer;
 
@@ -36,22 +35,6 @@ int numberOfBulbs;
 
 static SimpleMenuItem all_bulbs[1];
 static SimpleMenuItem* bulb_menu;
-
-// void loading_screen_init (void) {
-//     loading_screen_text = text_layer_create(GRect(0,52,144,40));
-//     text_layer_set_text_alignment(loading_screen_text, GTextAlignmentCenter); // Center the text.
-//     text_layer_set_font(loading_screen_text, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-//     text_layer_set_text(loading_screen_text, msg);
-//     text_layer_set_text_color(loading_screen_text, GColorBlack);
-//     layer_add_child(window_get_root_layer(window), text_layer_get_layer(loading_screen_text));
-//     APP_LOG(APP_LOG_LEVEL_INFO, "Building Loading Window.");
-// }
-
-// void loading_screen_destroy (void) {
-//     APP_LOG(APP_LOG_LEVEL_INFO, "Destroying Loading Window.");
-//     text_layer_destroy(loading_screen_text);
-//     window_destroy(loading_screen);
-// }
 
 //  Pebble app queries phone to start discoverer on phone.
 static void bulb_discovery_init (void) {
@@ -172,7 +155,6 @@ static void process_bulb_network_data (DictionaryIterator *iter) {
     };
 
     // Here is where we will kill the loading screen.
-    //loading_screen_destroy();
     // Now we prepare to initialize the simple menu layer
     // We need the bounds to specify the simple menu layer's viewport size
     // In this case, it'll be the same as the window's
@@ -217,12 +199,17 @@ static void app_message_init (void) {
 
 // This initializes the menu upon window load
 static void window_load (Window *window) {
-    loading_screen_text = text_layer_create(GRect(0,52,144,40));
-    text_layer_set_text_alignment(loading_screen_text, GTextAlignmentCenter); // Center the text.
-    text_layer_set_font(loading_screen_text, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-    text_layer_set_text(loading_screen_text, msg);
-    text_layer_set_text_color(loading_screen_text, GColorBlack);
-    layer_add_child(window_get_root_layer(window), text_layer_get_layer(loading_screen_text));
+    bulb_graphics_layer = bitmap_layer_create(GRect(0, 0, 60, 120));
+    GBitmap *bulb = gbitmap_create_with_resource(RESOURCE_ID_LIFX_BULB_BW);
+    bitmap_layer_set_bitmap(bulb_graphics_layer, bulb);
+    layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(bulb_graphics_layer));
+
+    // loading_screen_text = text_layer_create(GRect(0,52,144,40));
+    // text_layer_set_text_alignment(loading_screen_text, GTextAlignmentCenter); // Center the text.
+    // text_layer_set_font(loading_screen_text, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+    // text_layer_set_text(loading_screen_text, msg);
+    // text_layer_set_text_color(loading_screen_text, GColorBlack);
+    // layer_add_child(window_get_root_layer(window), text_layer_get_layer(loading_screen_text));
     APP_LOG(APP_LOG_LEVEL_INFO, "Building Loading Window.");
 }
 

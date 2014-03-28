@@ -18,6 +18,11 @@
         "type": "png",
         "file": "images/pebblifxlogo.png",
         "menuIcon": true
+      },
+      {
+        "name": "LIFX_BULB_BW",
+        "type": "png",
+        "file": "images/BW-bulb.png"
       }
     ]
   }
