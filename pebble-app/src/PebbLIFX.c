@@ -22,9 +22,11 @@ Bulb *bulbList;
 
 static TextLayer *loading_screen_text;
 
-// static char *msg = "Loading Bulb Info...";
+static char *msg = "Loading Bulb Info...";
 
 static BitmapLayer *bulb_graphics_layer;
+static GBitmap *bulb_bitmap;
+
 static Window *window;
 static SimpleMenuLayer *simple_menu_layer;
 
@@ -154,7 +156,6 @@ static void process_bulb_network_data (DictionaryIterator *iter) {
         .items = bulb_menu,
     };
 
-    // Here is where we will kill the loading screen.
     // Now we prepare to initialize the simple menu layer
     // We need the bounds to specify the simple menu layer's viewport size
     // In this case, it'll be the same as the window's
@@ -164,8 +165,12 @@ static void process_bulb_network_data (DictionaryIterator *iter) {
     // Initialize the simple menu layer
     simple_menu_layer = simple_menu_layer_create(bounds, window, menu_sections, NUM_MENU_SECTIONS, NULL);
 
-    // Add it to the window for display
+    // Here is where we will kill the loading screen.
     text_layer_destroy(loading_screen_text);
+    bitmap_layer_destroy(bulb_graphics_layer);
+    gbitmap_destroy(bulb_bitmap);
+
+    // Add it to the window for display
     layer_add_child(window_layer, simple_menu_layer_get_layer(simple_menu_layer));
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Added menu layer!");
 }
@@ -198,18 +203,19 @@ static void app_message_init (void) {
 }
 
 // This initializes the menu upon window load
-static void window_load (Window *window) {
-    bulb_graphics_layer = bitmap_layer_create(GRect(0, 0, 60, 120));
-    GBitmap *bulb = gbitmap_create_with_resource(RESOURCE_ID_LIFX_BULB_BW);
-    bitmap_layer_set_bitmap(bulb_graphics_layer, bulb);
+static void window_load (Window *window) { // 144 x 168 is pebble screen size
+    bulb_graphics_layer = bitmap_layer_create(GRect(((144 - 60)/2), 26, 60, 120));
+    bulb_bitmap = gbitmap_create_with_resource(RESOURCE_ID_LIFX_BULB_BW);
+    bitmap_layer_set_bitmap(bulb_graphics_layer, bulb_bitmap);
     layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(bulb_graphics_layer));
 
-    // loading_screen_text = text_layer_create(GRect(0,52,144,40));
-    // text_layer_set_text_alignment(loading_screen_text, GTextAlignmentCenter); // Center the text.
-    // text_layer_set_font(loading_screen_text, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-    // text_layer_set_text(loading_screen_text, msg);
-    // text_layer_set_text_color(loading_screen_text, GColorBlack);
-    // layer_add_child(window_get_root_layer(window), text_layer_get_layer(loading_screen_text));
+    loading_screen_text = text_layer_create(GRect(0,2,144,40));
+    text_layer_set_text_alignment(loading_screen_text, GTextAlignmentCenter); // Center the text.
+    text_layer_set_font(loading_screen_text, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+    text_layer_set_text(loading_screen_text, msg);
+    text_layer_set_text_color(loading_screen_text, GColorBlack);
+    text_layer_set_background_color(loading_screen_text, GColorClear);
+    layer_add_child(window_get_root_layer(window), text_layer_get_layer(loading_screen_text));
     APP_LOG(APP_LOG_LEVEL_INFO, "Building Loading Window.");
 }
 
@@ -226,6 +232,18 @@ void send_close_signal() {
 
 // Deinitialize resources on window unload that were initialized on window load.
 void window_unload (Window *window) {
+    if (loading_screen_text) {
+        text_layer_destroy(loading_screen_text);
+    }
+
+    if (bulb_graphics_layer) {
+        bitmap_layer_destroy(bulb_graphics_layer);
+    }
+
+    if (bulb_bitmap) {
+        gbitmap_destroy(bulb_bitmap);
+    }
+
     if (simple_menu_layer) {
         simple_menu_layer_destroy(simple_menu_layer);
     }
