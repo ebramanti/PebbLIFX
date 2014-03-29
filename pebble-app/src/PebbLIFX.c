@@ -20,13 +20,19 @@ typedef struct Bulb Bulb;
 
 Bulb *bulbList;
 
-static TextLayer *loading_screen_text;
-
-static char *msg = "Loading Bulb Info...";
-
+// Required for loading screen
 static BitmapLayer *bulb_graphics_layer;
 static GBitmap *bulb_bitmap;
+static TextLayer *loading_screen_text;
+static char *loading_msg = "Loading Bulb Info...";
 
+// Required for no network screen
+static TextLayer *layer_sad_text;
+static char *sad_face = ":(";
+// static TextLayer layer_no_net_text;
+// static char *no_net_msg = "No bulbs found.";
+
+// Window for main menu
 static Window *window;
 static SimpleMenuLayer *simple_menu_layer;
 
@@ -107,6 +113,12 @@ static void all_lights_on_off_callback (int index, void *ctx) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent On/Off Command");
 }
 
+static void destroy_load_message() {
+    text_layer_destroy(loading_screen_text);
+    bitmap_layer_destroy(bulb_graphics_layer);
+    gbitmap_destroy(bulb_bitmap);
+}
+
 //  Pebble app receives dictionary containing bulb info, etc.
 static void process_bulb_network_data (DictionaryIterator *iter) {
 
@@ -135,7 +147,6 @@ static void process_bulb_network_data (DictionaryIterator *iter) {
     };
 
     //  Create sections for the bulb names.
-    j = 2;
     for (int i = 0; i < numberOfBulbs; i++) {
         bulb_menu[i] = (SimpleMenuItem){
             .title = bulbList[i].label,
@@ -166,22 +177,83 @@ static void process_bulb_network_data (DictionaryIterator *iter) {
     simple_menu_layer = simple_menu_layer_create(bounds, window, menu_sections, NUM_MENU_SECTIONS, NULL);
 
     // Here is where we will kill the loading screen.
-    text_layer_destroy(loading_screen_text);
-    bitmap_layer_destroy(bulb_graphics_layer);
-    gbitmap_destroy(bulb_bitmap);
+    destroy_load_message();
 
     // Add it to the window for display
     layer_add_child(window_layer, simple_menu_layer_get_layer(simple_menu_layer));
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Added menu layer!");
 }
 
+static void display_no_network_found () {
+    layer_sad_text = text_layer_create(GRect(0,2,144,40));
+    text_layer_set_text_alignment(layer_sad_text, GTextAlignmentCenter); // Center the text.
+    text_layer_set_font(layer_sad_text, fonts_get_system_font(FONT_KEY_BITHAM_34_LIGHT_SUBSET));
+    text_layer_set_text(layer_sad_text, sad_face);
+    text_layer_set_text_color(layer_sad_text, GColorBlack);
+    text_layer_set_background_color(layer_sad_text, GColorClear);
+    layer_add_child(window_get_root_layer(window), text_layer_get_layer(layer_sad_text));
+    APP_LOG(APP_LOG_LEVEL_INFO, "Building network not found.");
+}
+
+static void build_load_screen () {
+    bulb_graphics_layer = bitmap_layer_create(GRect(((144 - 60)/2), 26, 60, 120));
+    bulb_bitmap = gbitmap_create_with_resource(RESOURCE_ID_LIFX_BULB_BW);
+    bitmap_layer_set_bitmap(bulb_graphics_layer, bulb_bitmap);
+    layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(bulb_graphics_layer));
+
+    loading_screen_text = text_layer_create(GRect(0,2,144,40));
+    text_layer_set_text_alignment(loading_screen_text, GTextAlignmentCenter); // Center the text.
+    text_layer_set_font(loading_screen_text, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+    text_layer_set_text(loading_screen_text, loading_msg);
+    text_layer_set_text_color(loading_screen_text, GColorBlack);
+    text_layer_set_background_color(loading_screen_text, GColorClear);
+    layer_add_child(window_get_root_layer(window), text_layer_get_layer(loading_screen_text));
+    APP_LOG(APP_LOG_LEVEL_INFO, "Building Loading Window.");
+}
+
+// This initializes the menu upon window load
+static void window_load (Window *window) { // 144 x 168 is pebble screen size
+    build_load_screen();
+}
+
+static void send_close_signal() {
+    DictionaryIterator *iter;
+    if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
+        return;
+    }
+    if (dict_write_uint8(iter, 0, APP_CLOSE_KEY) != DICT_OK) {
+        return;
+    }
+    app_message_outbox_send();
+}
+
+// Deinitialize resources on window unload that were initialized on window load.
+static void window_unload (Window *window) {
+    if (loading_screen_text) {
+        text_layer_destroy(loading_screen_text);
+    }
+
+    if (bulb_graphics_layer) {
+        bitmap_layer_destroy(bulb_graphics_layer);
+    }
+
+    if (bulb_bitmap) {
+        gbitmap_destroy(bulb_bitmap);
+    }
+
+    if (simple_menu_layer) {
+        simple_menu_layer_destroy(simple_menu_layer);
+    }
+}
+
+// Handles all messages from phone
 static void handle_receive (DictionaryIterator *iter, void *context) {
     int message_type = dict_read_first(iter)->value->uint8;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received response from phone");
     switch(message_type) {
     case 0:
         APP_LOG(APP_LOG_LEVEL_DEBUG, "No Network Found - Key Code: %d", message_type);
-        //display_no_network_found(); //TODO implement
+        display_no_network_found(); //TODO implement
         break;
     case 1:
         process_bulb_network_data(iter);
@@ -202,71 +274,15 @@ static void app_message_init (void) {
     app_message_register_inbox_received(handle_receive);
 }
 
-// This initializes the menu upon window load
-static void window_load (Window *window) { // 144 x 168 is pebble screen size
-    bulb_graphics_layer = bitmap_layer_create(GRect(((144 - 60)/2), 26, 60, 120));
-    bulb_bitmap = gbitmap_create_with_resource(RESOURCE_ID_LIFX_BULB_BW);
-    bitmap_layer_set_bitmap(bulb_graphics_layer, bulb_bitmap);
-    layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(bulb_graphics_layer));
-
-    loading_screen_text = text_layer_create(GRect(0,2,144,40));
-    text_layer_set_text_alignment(loading_screen_text, GTextAlignmentCenter); // Center the text.
-    text_layer_set_font(loading_screen_text, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-    text_layer_set_text(loading_screen_text, msg);
-    text_layer_set_text_color(loading_screen_text, GColorBlack);
-    text_layer_set_background_color(loading_screen_text, GColorClear);
-    layer_add_child(window_get_root_layer(window), text_layer_get_layer(loading_screen_text));
-    APP_LOG(APP_LOG_LEVEL_INFO, "Building Loading Window.");
-}
-
-void send_close_signal() {
-    DictionaryIterator *iter;
-    if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
-        return;
-    }
-    if (dict_write_uint8(iter, 0, APP_CLOSE_KEY) != DICT_OK) {
-        return;
-    }
-    app_message_outbox_send();
-}
-
-// Deinitialize resources on window unload that were initialized on window load.
-void window_unload (Window *window) {
-    if (loading_screen_text) {
-        text_layer_destroy(loading_screen_text);
-    }
-
-    if (bulb_graphics_layer) {
-        bitmap_layer_destroy(bulb_graphics_layer);
-    }
-
-    if (bulb_bitmap) {
-        gbitmap_destroy(bulb_bitmap);
-    }
-
-    if (simple_menu_layer) {
-        simple_menu_layer_destroy(simple_menu_layer);
-    }
-
-    send_close_signal();
-  // Cleanup the menu icon
-  //gbitmap_destroy(menu_icon_image);
-}
-
-int main(void) {
-
+void init () {
     //  Initialize app message inbox/outbox.
     app_message_init();
-
-    //  Starts a loading screen until bulbs are finished being sent.
-    //loading_screen_init();
 
     //  Sends message to phone to initialize discovery
     bulb_discovery_init();
 
     // This should not occur until bulb information is pulled from the app.
     window = window_create();
-
 
     // Setup the window handlers
     window_set_window_handlers(window, (WindowHandlers) {
@@ -275,8 +291,19 @@ int main(void) {
     });
 
     window_stack_push(window, true /* Animated */);
+}
 
-    app_event_loop();
-
+void deinit () {
     window_destroy(window);
+    destroy_load_message();
+    free(bulbList);
+    simple_menu_layer_destroy(simple_menu_layer);
+
+    send_close_signal();
+}
+
+int main(void) {
+    init();
+    app_event_loop();
+    deinit();
 }
