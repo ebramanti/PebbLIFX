@@ -33,7 +33,7 @@
 		    android:label="@string/app_name"
             >
         </service>
-        <receiver android:name="com.jadengore.pebblifx.service.PebbLIFXBroascastReceiver">  
+        <receiver android:name="com.jadengore.pebblifx.service.PebbLIFXBroadcastReceiver">  
 		    <intent-filter>  
 		        <action android:name="android.intent.action.BOOT_COMPLETED" />  
 		    </intent-filter>  
