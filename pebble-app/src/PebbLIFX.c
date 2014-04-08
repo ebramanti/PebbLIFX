@@ -263,7 +263,7 @@ static void handle_receive (DictionaryIterator *iter, void *context) {
         break;
     case 3:
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Lost Connection - Key Code: %d", message_type);
-        //display_connection_lost(); //TODO implement
+        // display_connection_lost(); //TODO implement
         break;
     }
 }
@@ -295,9 +295,20 @@ void init () {
 
 void deinit () {
     window_destroy(window);
-    destroy_load_message();
-    free(bulbList);
-    simple_menu_layer_destroy(simple_menu_layer);
+    if (bulb_graphics_layer) {
+        destroy_load_message();
+    }
+
+    if (bulbList) {
+        free(bulbList);
+    }
+
+    if (simple_menu_layer) {
+        simple_menu_layer_destroy(simple_menu_layer);
+    }
+    if (bulb_menu) {
+        free(bulb_menu);
+    }
 
     send_close_signal();
 }
