@@ -1,23 +1,18 @@
 package com.jadengore.pebblifx;
 
-//import java.io.IOException;
-
 import com.jadengore.pebblifx.service.PebbLIFXService;
-
 import android.os.Bundle;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.content.Context;
 import android.content.Intent;
-import android.widget.Toast;
 
 public class MainActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		if (serviceRunning()) {
 			stopService(new Intent(getApplicationContext(), PebbLIFXService.class));
-			Toast.makeText(getApplicationContext(), "PebbLIFXService stopped.", Toast.LENGTH_SHORT).show();
 		} else {
 			Intent bindIntent = new Intent(getApplicationContext(), PebbLIFXService.class);
 			startService(bindIntent);

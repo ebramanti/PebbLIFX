@@ -4,7 +4,6 @@ package com.jadengore.pebblifx.service;
 
 import java.util.ArrayList;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import com.getpebble.android.kit.PebbleKit;
 import com.getpebble.android.kit.util.PebbleDictionary;
@@ -65,12 +64,16 @@ public class PebbLIFXService extends Service {
 	}
 	
 	//	Helper method for converting signed numbers in Java.
-	private short convertSigned (float value) {
-		if (value > Short.MAX_VALUE) {
-			return (short)(value + Integer.MIN_VALUE);
-		} else {
-			return (short)value;
-		}
+	//private short convertSigned (float value) {
+	//	if (value > Short.MAX_VALUE) {
+	//		return (short)(value + Integer.MIN_VALUE);
+	//	} else {
+	//		return (short)value;
+	//	}
+	//}
+	
+	public static long getUnsignedInt(float x) {
+	    return (int)x & 0x00000000ffffffffL;
 	}
 	
 
@@ -116,12 +119,14 @@ public class PebbLIFXService extends Service {
 		localNetworkContext = LFXClient.getSharedInstance(getApplicationContext()).getLocalNetworkContext();
 	    localNetworkContext.connect();
 	    bulbList = localNetworkContext.getAllLightsCollection().getLights();
+	    Log.i("PebbLIFXService", "Bulb List: " + bulbList.toString());
 		if (bulbList == null) {
 			Log.e("PebbLIFXService","Nothing returned. No network found.");
 			sendMessage(0);
 		} else {
 			Log.i("PebbLIFXService", "Search has completed.");
 			int numberOfBulbs = bulbList.size();
+			Log.i("PebbLIFXService", "Bulb List Size:" + numberOfBulbs);
 			if (PebbleKit.areAppMessagesSupported(getApplicationContext())) {
 				PebbleDictionary bulbData = new PebbleDictionary();
 				bulbData.addUint8(0, (byte) 1);
@@ -137,23 +142,14 @@ public class PebbLIFXService extends Service {
 					} else {
 						bulbData.addUint8(j++, (byte)0);
 					}
-					bulbData.addUint16(j++, convertSigned(bulbList.get(i).getColor().getBrightness()));
-					bulbData.addUint16(j++, convertSigned(bulbList.get(i).getColor().getHue()));
+					//	TODO Fix brightness and hue getting. Returning nothing.
+					bulbData.addUint16(j++, (short)getUnsignedInt(bulbList.get(i).getColor().getBrightness()));
+					bulbData.addUint16(j++, (short)getUnsignedInt(bulbList.get(i).getColor().getHue()));
 				}
 				Log.i("PebbLIFXService", "Dictionary -> " + bulbData.toJsonString());
-				//if (bulbData.size() > 2) {
-					PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, bulbData);
-					Log.i("PebbLIFXService", "Data sent.");
-				/*} else {
-					try {
-						TimeUnit.SECONDS.sleep(1);
-					} catch (InterruptedException e) {
-						Log.e("PebbLIFXService", "Issue with wait on discovery fail.", e);
-					}
-					noNetworkFound();
-					localNetworkContext.disconnect();
-					Log.i("PebbLIFXService", "Network closed.");
-				}*/
+				Log.i("PebbLIFXService", "Dictionary Size = " + bulbData.size());
+				PebbleKit.sendDataToPebble(getApplicationContext(), PEBBLE_APP_UUID, bulbData);
+				Log.i("PebbLIFXService", "Data sent.");
 			}
 		}
 	}
@@ -193,7 +189,7 @@ public class PebbLIFXService extends Service {
 	    	break;
 	    case 1: //Pebble app close.
 	    	localNetworkContext.disconnect();
-			Log.i("PebbLIFXService", "Network closed.");
+	    	Log.i("PebbLIFXService", "Network closed.");
 	    	break;
 	    case 2: // Turns bulbs on or off.
 	    	Log.i("PebbLIFXService", "On/off command received.");
@@ -201,7 +197,7 @@ public class PebbLIFXService extends Service {
 	    	break;
 	    case 3: // Adjusts brightness of bulbs.
 	    	Log.i("PebbLIFXService", "Brightness adjustment command received.");
-	    	brightness(dictionary.getUnsignedInteger(1).intValue(), convertSigned(dictionary.getUnsignedInteger(2).intValue()));
+	    	//brightness(dictionary.getUnsignedInteger(1).intValue(), convertSigned(dictionary.getUnsignedInteger(2).intValue()));
 	    	break;
 	    case 4: // Adjusts color of bulbs.
 	    	Log.i("PebbLIFXService", "Color adjustment command received.");
@@ -279,9 +275,13 @@ public class PebbLIFXService extends Service {
 	}
 
 	@Override
-	public IBinder onBind(Intent arg0) {
-		// TODO Auto-generated method stub
+	public IBinder onBind(Intent intent) {
 		return null;
+	}
+	
+	@Override
+	public void onDestroy() {
+		Toast.makeText(getApplicationContext(), "PebbLIFXService stopped.", Toast.LENGTH_SHORT).show();
 	}
 
 }
