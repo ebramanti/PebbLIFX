@@ -1,45 +1,32 @@
 PebbLIFX
 =========
 
-PebbLIFX is a Pebble application that allows you to control your LIFX bulbs when your phone is in range of your WiFi network. 
+PebbLIFX is a Pebble application that allows you to control your LIFX bulbs when your phone is in range of your bulb WiFi network. 
 
-PebbLIFX uses the [AndroidLIFX](https://github.com/akrs/AndroidLIFX) library in order to communicate with the bulbs via a companion Android app.
+PebbLIFX uses the [LIFX Android SDK](https://github.com/LIFX/lifx-sdk-android) to communicate with the bulbs via a companion Android app.
 
-Initial Goals
+Current Functionality
 =============
-* Activation of companion app when Pebble app opens.
-* Light commands in Pebble app
-    - Brightness
-    - On/Off
-* Option for All Bulbs and Individual Bulbs
-    - Use Node server to detect currently connected bulbs.
-    - Use optional parameters to control individual bulbs.
+* Get current list of bulbs on WiFi network.
+* Display current state of bulbs (on/off).
+* Toggle all/individual bulbs on/off.
 
-Pebble App Functionality
+Roadmap
 =================
-* Initial Opening
-    - Shows loading (maybe a splash) screen while companion app loads Node server and gets details.
-* Main Menu
-    - Shows the current lists of bulbs on the WiFi network.
-        + Scrollable using up/down keys.
-    - First result always shows "All Bulbs" with subsequent bulbs listed below
-    - Bulbs pull bulb names from companion app running node server
-        + If no name given for bulb, use "New Bulb" as a default in Pebble app code.
-* Option Selected
-    - Up and down keys will control brightness.
-    - Middle button will control on/off status.
-    - Bulb name/functionality prompts will appear on screen.
+* Individual Bulb Menus
+    - With addition of bulb menus, switch on/off to quick longpress action.
+    - Individual bulb menus with current state.
+    - Submenus: brightness with up/down button control, and color presets.
     - Back button will return to main menu.
+* Android App UI
+    - Pebble status (Connected)
+    - Bulb List in-app
+    - Toggle for PebbLIFX background service
 
 Future Features
 ===============
-* Possible Color Preset Options for all Bulbs
-    - LED White
-    - Incandescent
-    - Custom Color
-* Addition to app of custom profiles pushed to watch app
-    - Not sure how to do that without a custom build.
+* Custom color control in Android app
 * Better error checking
     - Identification in watch app that phone is not connected to WiFi.
-    - Integration of inevitable LIFX API into this application.
+    - Faster response to watch actions (dependent on API).
 
