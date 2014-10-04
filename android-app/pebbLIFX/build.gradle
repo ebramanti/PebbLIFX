@@ -19,8 +19,7 @@ android {
 }
 
 dependencies {
-    compile project(':androidLIFX')
-    compile project(':pEBBLE_KIT')
-    compile project(':lIFX_SDK_ANDROID')
+    compile 'com.getpebble:pebblekit:2.5.0'
+    compile project(':LIFX_SDK_ANDROID')
     compile 'com.android.support:support-v4:19.1.0'
 }

@@ -2,11 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/android-app1.iml" filepath="$PROJECT_DIR$/android-app1.iml" />
-      <module fileurl="file://$PROJECT_DIR$/androidLIFX/androidLIFX.iml" filepath="$PROJECT_DIR$/androidLIFX/androidLIFX.iml" />
-      <module fileurl="file://$PROJECT_DIR$/lIFX_SDK_ANDROID/lIFX_SDK_ANDROID.iml" filepath="$PROJECT_DIR$/lIFX_SDK_ANDROID/lIFX_SDK_ANDROID.iml" />
-      <module fileurl="file://$PROJECT_DIR$/pEBBLE_KIT/pEBBLE_KIT.iml" filepath="$PROJECT_DIR$/pEBBLE_KIT/pEBBLE_KIT.iml" />
-      <module fileurl="file://$PROJECT_DIR$/pebbLIFX/pebbLIFX.iml" filepath="$PROJECT_DIR$/pebbLIFX/pebbLIFX.iml" />
+      <module fileurl="file://$PROJECT_DIR$/LIFX_SDK_ANDROID/LIFX_SDK_ANDROID.iml" filepath="$PROJECT_DIR$/LIFX_SDK_ANDROID/LIFX_SDK_ANDROID.iml" />
+      <module fileurl="file://$PROJECT_DIR$/PebbLIFX/pebbLIFX.iml" filepath="$PROJECT_DIR$/PebbLIFX/pebbLIFX.iml" />
+      <module fileurl="file://$PROJECT_DIR$/android-app.iml" filepath="$PROJECT_DIR$/android-app.iml" />
     </modules>
   </component>
 </project>

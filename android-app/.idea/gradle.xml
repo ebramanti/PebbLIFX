@@ -8,10 +8,9 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/androidLIFX" />
-            <option value="$PROJECT_DIR$/lIFX_SDK_ANDROID" />
-            <option value="$PROJECT_DIR$/pEBBLE_KIT" />
-            <option value="$PROJECT_DIR$/pebbLIFX" />
+            <option value="$PROJECT_DIR$/LIFX_SDK_ANDROID" />
+            <option value="$PROJECT_DIR$/PebbLIFX" />
+            <option value="$PROJECT_DIR$/PebbleKit" />
           </set>
         </option>
       </GradleProjectSettings>
