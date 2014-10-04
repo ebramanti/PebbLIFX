@@ -1,3 +1,0 @@
-include ':LIFX_SDK_ANDROID'
-include ':PebbleKit'
-include ':PebbLIFX'
