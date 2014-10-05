@@ -38,6 +38,11 @@
 		        <action android:name="android.intent.action.BOOT_COMPLETED" />  
 		    </intent-filter>  
         </receiver>
+        <receiver android:name="com.jadengore.pebblifx.service.PebbLIFXWifiReceiver" >
+            <intent-filter android:priority="100">
+                <action android:name="WifiManager.NETWORK_STATE_CHANGED_ACTION" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
