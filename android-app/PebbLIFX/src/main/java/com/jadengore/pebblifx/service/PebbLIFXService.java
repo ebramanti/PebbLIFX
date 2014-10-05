@@ -46,7 +46,8 @@ public class PebbLIFXService extends Service {
 	}
 	
 	public int onStartCommand(Intent intent, int flags, int startId) {
-		PebbleKit.registerReceivedDataHandler(this, new PebbleKit.PebbleDataReceiver(PEBBLE_APP_UUID) {
+
+        PebbleKit.registerReceivedDataHandler(this, new PebbleKit.PebbleDataReceiver(PEBBLE_APP_UUID) {
 		    @Override
 		    public void receiveData(final Context context, final int transactionId, final PebbleDictionary data) {
 		      Log.i("PebbLIFXService", "Received value = " + data.getUnsignedInteger(0) + " for key: 0");
@@ -57,10 +58,11 @@ public class PebbLIFXService extends Service {
 		      }
 		    }
 		});
+
 		boolean connected = PebbleKit.isWatchConnected(getApplicationContext());
 		String pebbleStatus = (connected ? "connected" : "not connected");
 		Toast.makeText(getApplicationContext(), "PebbLIFXService started, Pebble " + pebbleStatus , Toast.LENGTH_SHORT).show();
-		Log.i("PebbleLIFXService", "Pebble is " + (connected ? "connected" : "not connected"));
+		Log.i("PebbLIFXService", "Pebble is " + (connected ? "connected" : "not connected"));
 		// http://stackoverflow.com/questions/15758980/android-service-need-to-run-alwaysnever-pause-or-stop
 		return START_STICKY;
 	}
@@ -232,21 +234,24 @@ public class PebbLIFXService extends Service {
 		ack();
 	}
 	
-	public void brightness (int target, short level) {
-		// TODO BRIGHTNESS for all
+	public void brightness (int target, float level) {
 		if (target == 0) {
-			/*try {
-				//net.brightness(level); or setState somehow
-			} catch (IOException e) {
-				Log.e("PebbLIFXService", "Unable to set brightness for all bulbs.", e);
-			} */
+            for (LFXLight light : localNetworkContext.getAllLightsCollection().getLights()) {
+                setBrightness(light, level);
+            }
 		} else {
-			//bulbList.get(target - 1).setBrightness(null);
-		}	
+			setBrightness(bulbList.get(target - 1), level);
+		}
+        Log.i("PebbLIFXService", "New Brightness: " + (level*100) + "%");
 		ack();
 	}
-	
-	//public void color (int target, short color) {
+
+    public void setBrightness (LFXLight light, float level) {
+        LFXHSBKColor currentColor = light.getColor();
+        LFXHSBKColor newColor = LFXHSBKColor.getColor(currentColor.getHue(), currentColor.getSaturation(), level, currentColor.getKelvin());
+        light.setColor(newColor);
+    }
+
 	public void color (int target, int r, int g, int b) {
         float[] hsvResult = new float[3];
         Color.RGBToHSV(r, g, b, hsvResult);
@@ -280,5 +285,11 @@ public class PebbLIFXService extends Service {
 	public void onDestroy() {
 		Toast.makeText(getApplicationContext(), "PebbLIFXService stopped.", Toast.LENGTH_SHORT).show();
 	}
+
+    //public boolean isConnectedToWifi(Context context) {
+    //    ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+    //    NetworkInfo networkInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+    //    return networkInfo.isConnected();
+    //}
 
 }
