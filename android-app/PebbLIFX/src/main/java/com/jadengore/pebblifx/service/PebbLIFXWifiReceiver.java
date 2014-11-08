@@ -19,7 +19,6 @@ public class PebbLIFXWifiReceiver extends BroadcastReceiver{
             Log.i("PebbLIFXWifiReceiver", "Wifi State Changed, PebbLIFXService refreshed.");
             context.startService(new Intent(context, PebbLIFXService.class));
         } else {
-            Log.i("PebbLIFXWifiReceiver", "Wifi DC'd, PebbLIFXService stopped.");
             context.stopService(new Intent(context, PebbLIFXService.class));
         }
     }

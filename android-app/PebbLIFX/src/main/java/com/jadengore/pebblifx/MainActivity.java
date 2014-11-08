@@ -17,7 +17,6 @@ public class MainActivity extends Activity {
 			Intent bindIntent = new Intent(getApplicationContext(), PebbLIFXService.class);
 			startService(bindIntent);
 		}
-		
 		super.onCreate(savedInstanceState);
 		finish();
 	}
